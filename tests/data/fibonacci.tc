@@ -1,0 +1,52 @@
+const m_data 0
+const data_len 10
+
+copystatic data_len m_data start
+1 2 3 4 5 6 7 8 9 10
+
+label f_fib
+push r0 x x
+push r1 x x
+push r2 x x
+fpop r0 x x
+imm2|jple r0 1 if_L1
+imm2|sub r0 1 r0
+fpush r0 x x
+call x x f_fib
+fpop r1 x x
+imm2|sub r0 1 r0
+fpush r0 x x
+call x x f_fib
+fpop r2 x x
+add r1 r2 r1
+fpush r1 x x
+jp x x f_fib_ret
+
+label if_L1
+fpush r0 x x
+jp x x f_fib_ret
+label f_fib_ret
+pop r2 x x
+pop r1 x x
+pop r0 x x
+ret x x x
+
+label start
+
+imm1|cp 0 x r1
+label for_L1
+imm1|add m_data r1 r2
+ld r2 r0 x
+
+fpush r0 x x
+call x x f_fib
+fpop r0 x x
+st r2 r0 x
+
+imm2|add r1 1 r1
+imm2|jpeq r1 data_len for_L2
+jp x x for_L1
+label for_L2
+halt
+
+# mem: 1 1 2 3 5 8 13 21 34 55
