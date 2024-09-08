@@ -4,9 +4,9 @@ use anyhow::anyhow;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
-use std::fmt;
 use std::hash::Hash;
 use std::str::FromStr;
+use std::fmt;
 use yeet_ops::yeet;
 
 /// LEG-Architecture uses fixed-length instructions.
@@ -25,6 +25,7 @@ pub struct Assembler {
 
 #[derive(Debug, Clone)]
 struct AssemblyTarget {
+    commented_binary: String,
     /// Target binary
     binary: BinaryParts,
 }
@@ -174,6 +175,20 @@ impl Assembler {
     }
 
     fn assemble(&self) -> AssemblyTarget {
+        let mut commented_binary = String::new();
+        
+        let mut commented_binary_append = |b: &[u8], comment: &str| {
+            use fmt::Write;
+            if b.is_empty() {
+                writeln!(&mut commented_binary, "# {}", comment).unwrap();
+            } else {
+                writeln!(&mut commented_binary, "{} # {}", hex_array_literal(b), comment).unwrap();
+            }
+        };
+
+        commented_binary_append(&self.binary_header[0..4], "copystatic");
+        commented_binary_append(&self.binary_header[4..], "data");
+
         let mut code_binary = Vec::new();
         let code_section = self.sections.find("code").unwrap();
         for line in &code_section.body_lines {
@@ -184,11 +199,13 @@ impl Assembler {
             }
             // skip labels and empty lines
             if line.ends_with(':') || line.is_empty() {
+                commented_binary_append(&[], line);
                 continue;
             }
 
             let inst = self.process_asm_statement(line).unwrap().1;
             inst.iter().for_each(|&x| code_binary.push(x));
+            commented_binary_append(&inst, line);
         }
 
         let binary_parts = BinaryParts {
@@ -197,6 +214,7 @@ impl Assembler {
         };
         AssemblyTarget {
             binary: binary_parts,
+            commented_binary,
         }
     }
 
@@ -409,6 +427,16 @@ pub static MNEMONICS: Lazy<HashMap<&'static str, u8>> = Lazy::new(|| {
     map
 });
 
+fn hex_array_literal(binary: &[u8]) -> String {
+    let mut line = String::new();
+    for &x in binary {
+        use fmt::Write;
+        write!(&mut line, "0x{:02x} ", x).unwrap();
+    }
+    line.remove(line.len() - 1);
+    line
+}
+
 #[cfg(test)]
 mod test {
     use crate::asm::{Assembler, Sections};
@@ -441,6 +469,8 @@ mod test {
             }
             println!();
         }
+        println!();
+        println!("{}", target.commented_binary);
     }
 
     #[test]
