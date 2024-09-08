@@ -1,4 +1,5 @@
 use crate::opcode::{Opcode, Operand};
+use crate::VecExt;
 use anyhow::anyhow;
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -7,7 +8,6 @@ use std::fmt;
 use std::hash::Hash;
 use std::str::FromStr;
 use yeet_ops::yeet;
-use crate::VecExt;
 
 /// LEG-Architecture uses fixed-length instructions.
 const INST_LENGTH: u8 = 4;
@@ -29,21 +29,37 @@ struct AssemblyTarget {
     /// Assembly code in "Turing Complete" game
     tc_game_asm: String,
     /// Target binary
-    binary: Vec<u8>,
+    binary: BinaryParts,
+}
+
+#[derive(Debug, Clone)]
+struct BinaryParts {
+    header: Vec<u8>,
+    code: Vec<u8>,
+}
+
+impl BinaryParts {
+    fn merge(&self) -> Vec<u8> {
+        self.header
+            .iter()
+            .chain(self.code.iter())
+            .copied()
+            .collect()
+    }
 }
 
 impl Assembler {
     pub fn new<S: AsRef<str>>(code: S) -> anyhow::Result<Self> {
         let code = code.as_ref();
-        
+
         let mut tc_lines = Vec::new();
         let mut consts: HashMap<String, u8> = HashMap::new();
         let mut copy_static_info = (0_u8, 0_u8);
         let mut copy_static_data: Option<Vec<u8>> = None;
         let mut binary_header = Vec::new();
-        
+
         let sections = Sections::new(code)?;
-        
+
         if let Some(s) = sections.find("consts") {
             for x in &s.body_lines {
                 let mut split = x.split(' ');
@@ -64,7 +80,7 @@ impl Assembler {
             .clone()
             .into_iter()
             .for_each(|x| tc_lines.push(x));
-        let labels = Self::read_labels(&code_section.body_lines);
+        let mut labels = Self::read_labels(&code_section.body_lines);
 
         if let Some(s) = sections.find("data") {
             let mut static_data = Vec::new();
@@ -102,6 +118,16 @@ impl Assembler {
             copy_static_data = Some(static_data);
         }
 
+        // correct labels
+        // add the initial 4-byte `copystatic` instruction along with its data
+        for x in labels.values_mut() {
+            *x += INST_LENGTH;
+            *x += copy_static_data
+                .as_ref()
+                .map(|x| x.len())
+                .unwrap_or_default() as u8;
+        }
+
         let entry_section = sections
             .find("entry")
             .ok_or(anyhow!("Missing .entry section"))?;
@@ -113,15 +139,25 @@ impl Assembler {
         for x in &consts {
             tc_lines.push(format!("const {} {}", x.0, x.1));
         }
-        
+
         tc_lines.push(Default::default());
         tc_lines.push(format!(
             "copystatic {} {} {}",
             copy_static_info.0, copy_static_info.1, entrypoint
         ));
 
-        let &entrypoint_addr = labels.get(entrypoint).ok_or(anyhow!("Cannot find entrypoint: {entrypoint}"))?;
-        binary_header.push_all([Opcode::CopyStatic as u8, copy_static_info.0, copy_static_info.1, entrypoint_addr].into_iter());
+        let &entrypoint_addr = labels
+            .get(entrypoint)
+            .ok_or(anyhow!("Cannot find entrypoint: {entrypoint}"))?;
+        binary_header.push_all(
+            [
+                Opcode::CopyStatic as u8,
+                copy_static_info.0,
+                copy_static_info.1,
+                entrypoint_addr,
+            ]
+            .into_iter(),
+        );
         if let Some(x) = copy_static_data {
             let mut data_string = String::new();
             for &x in &x {
@@ -134,7 +170,6 @@ impl Assembler {
         }
 
         tc_lines.push(Default::default());
-
 
         Ok(Self {
             code: code.into(),
@@ -149,8 +184,7 @@ impl Assembler {
 
     fn read_labels(code_section_lines: &[String]) -> HashMap<String, u8> {
         let mut map = HashMap::new();
-        // add the initial `copystatic`
-        let mut offset = INST_LENGTH;
+        let mut offset = 0;
         for line in code_section_lines {
             let line = line.trim();
             if let Some(x) = line.strip_suffix(':') {
@@ -163,8 +197,7 @@ impl Assembler {
     }
 
     fn assemble(&self) -> AssemblyTarget {
-        let mut binary = Vec::new();
-        binary.push_all(self.binary_header.iter().copied());
+        let mut code_binary = Vec::new();
         let code_section = self.sections.find("code").unwrap();
         for line in &code_section.body_lines {
             let mut line = line.trim();
@@ -178,12 +211,16 @@ impl Assembler {
             }
 
             let inst = self.process_asm_statement(line).unwrap().1;
-            inst.iter().for_each(|&x| binary.push(x));
+            inst.iter().for_each(|&x| code_binary.push(x));
         }
-        
+
+        let binary_parts = BinaryParts {
+            header: self.binary_header.clone(),
+            code: code_binary,
+        };
         AssemblyTarget {
-            tc_game_asm: Default::default() /* TODO */,
-            binary
+            tc_game_asm: Default::default(), /* TODO */
+            binary: binary_parts,
         }
     }
 
@@ -205,15 +242,9 @@ impl Assembler {
                             .get(split_index)
                             .ok_or(anyhow!("cp: missing operand"))?;
                         let operand = match operand {
-                            _ if let Some(&x) = self.consts.get(operand) => {
-                                Operand::Immediate(x)
-                            }
-                            _ if let Some(&x) = self.labels.get(operand) => {
-                                Operand::Immediate(x)
-                            }
-                            _ => {
-                                Operand::from_str(operand)?
-                            }
+                            _ if let Some(&x) = self.consts.get(operand) => Operand::Immediate(x),
+                            _ if let Some(&x) = self.labels.get(operand) => Operand::Immediate(x),
+                            _ => Operand::from_str(operand)?,
                         };
 
                         inst[inst_index] = operand.to_u8();
@@ -422,6 +453,28 @@ mod test {
         let code = test_asm!("hello_world");
         let assembler = Assembler::new(code).unwrap();
         println!("{:#?}", assembler);
-        println!("{:?}", assembler.assemble());
+        let target = assembler.assemble();
+        for x in target.binary.header {
+            print!("0x{:02x} ", x);
+        }
+        println!();
+        for x in target.binary.code.chunks(4) {
+            for x in x {
+                // print!("0x{:02x} ", x);
+                print!("0x{:02x} ", x);
+            }
+            println!();
+        }
+    }
+
+    #[test]
+    fn foo() {
+        let data = [
+            1_u8, 17, 0, 21, 104, 101, 108, 108, 111, 44, 32, 119, 111, 114, 108, 100, 1, 2, 3, 4,
+            12, 131, 0, 0, 0, 72, 0, 0, 1, 40, 1, 1, 0, 3, 1, 0, 7, 72, 0, 1, 0, 98, 0, 12, 25, 2,
+        ];
+        for x in data {
+            print!("{:02x}", x);
+        }
     }
 }

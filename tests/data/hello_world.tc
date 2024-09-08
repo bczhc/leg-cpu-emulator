@@ -1,0 +1,18 @@
+const text 0
+const text_len 12
+
+copystatic 17 0 start
+
+0x68 0x65 0x6c 0x6c 0x6f 0x2c 0x20 0x77 0x6f 0x72 0x6c 0x64
+1 2 3 0b100
+12
+
+label start
+imm1|cp 0 x r0
+label for_L1
+imm2|add r0 text r1
+ld r1 r1 x
+cp r1 x out
+imm2|add r0 1 r0
+imm2|jplt r0 text_len for_L1
+halt x x x
