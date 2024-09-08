@@ -390,19 +390,6 @@ enum DataValue {
     Byte(u8),
 }
 
-pub static MNEMONICS: Lazy<HashMap<&'static str, u8>> = Lazy::new(|| {
-    let mut map = HashMap::new();
-    for line in include_str!("../mnemonics.txt").lines() {
-        let mut split = line.split(' ');
-        let name = split.next().unwrap();
-        let value = split.next().unwrap();
-        assert_eq!(value.len(), 8);
-        let value = u8::from_str_radix(value, 2).unwrap();
-        map.insert(name, value);
-    }
-    map
-});
-
 fn hex_array_literal(binary: &[u8]) -> String {
     let mut line = String::new();
     for &x in binary {
@@ -438,5 +425,13 @@ mod test {
         0003b0000006300014e490001003a0000003800000e3b010000490001003a0000003800000e3b0200000801020\
         13a010000240000563a00000024000056310200003101000031000000390000008300000188000102280200003\
         a0000003800000e3b000000290200004801010161010a8e2400006a02000000"));
+    }
+    
+    #[test]
+    fn asm_selection_sort() {
+        // TODO: binary larger than 256 bytes
+        // let code = test_asm!("selection_sort");
+        // let target = Assembler::new(code).unwrap().assemble();
+        // println!("{}", target.commented_binary);
     }
 }
