@@ -17,7 +17,6 @@ pub struct Assembler {
     code: String,
     lines: Vec<String>,
     consts: HashMap<String, u8>,
-    tc_lines: Vec<String>,
     labels: HashMap<String, u8>,
     sections: Sections,
     /// The `copystatic` portion.
@@ -26,8 +25,6 @@ pub struct Assembler {
 
 #[derive(Debug, Clone)]
 struct AssemblyTarget {
-    /// Assembly code in "Turing Complete" game
-    tc_game_asm: String,
     /// Target binary
     binary: BinaryParts,
 }
@@ -52,7 +49,6 @@ impl Assembler {
     pub fn new<S: AsRef<str>>(code: S) -> anyhow::Result<Self> {
         let code = code.as_ref();
 
-        let mut tc_lines = Vec::new();
         let mut consts: HashMap<String, u8> = HashMap::new();
         let mut copy_static_info = (0_u8, 0_u8);
         let mut copy_static_data: Option<Vec<u8>> = None;
@@ -75,11 +71,6 @@ impl Assembler {
         let code_section = sections
             .find("code")
             .ok_or(anyhow!("Missing .code section"))?;
-        code_section
-            .body_lines
-            .clone()
-            .into_iter()
-            .for_each(|x| tc_lines.push(x));
         let mut labels = Self::read_labels(&code_section.body_lines);
 
         if let Some(s) = sections.find("data") {
@@ -136,16 +127,6 @@ impl Assembler {
             .first()
             .ok_or(anyhow!(".entry: missing entrypoint"))?;
 
-        for x in &consts {
-            tc_lines.push(format!("const {} {}", x.0, x.1));
-        }
-
-        tc_lines.push(Default::default());
-        tc_lines.push(format!(
-            "copystatic {} {} {}",
-            copy_static_info.0, copy_static_info.1, entrypoint
-        ));
-
         let &entrypoint_addr = labels
             .get(entrypoint)
             .ok_or(anyhow!("Cannot find entrypoint: {entrypoint}"))?;
@@ -165,18 +146,14 @@ impl Assembler {
                 write!(&mut data_string, "{} ", x).unwrap();
             }
             data_string.remove(data_string.len() - 1);
-            tc_lines.push(data_string);
             binary_header.push_all(x.iter().copied());
         }
-
-        tc_lines.push(Default::default());
 
         Ok(Self {
             code: code.into(),
             lines: code.lines().map(Into::into).collect(),
             consts,
             labels,
-            tc_lines,
             sections,
             binary_header,
         })
@@ -219,7 +196,6 @@ impl Assembler {
             code: code_binary,
         };
         AssemblyTarget {
-            tc_game_asm: Default::default(), /* TODO */
             binary: binary_parts,
         }
     }
