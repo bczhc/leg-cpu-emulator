@@ -4,9 +4,9 @@ use anyhow::anyhow;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
+use std::fmt;
 use std::hash::Hash;
 use std::str::FromStr;
-use std::fmt;
 use yeet_ops::yeet;
 
 /// LEG-Architecture uses fixed-length instructions.
@@ -182,7 +182,13 @@ impl Assembler {
             if b.is_empty() {
                 writeln!(&mut commented_binary, "# {}", comment).unwrap();
             } else {
-                writeln!(&mut commented_binary, "{} # {}", hex_array_literal(b), comment).unwrap();
+                writeln!(
+                    &mut commented_binary,
+                    "{} # {}",
+                    hex_array_literal(b),
+                    comment
+                )
+                .unwrap();
             }
         };
 
@@ -227,13 +233,14 @@ impl Assembler {
             Opcode::from_str(opcode_str).map_err(|_| anyhow!("Unknown opcode: {}", opcode_str))?;
         inst[0] = opcode as u8;
 
-        let operands = split[1..].iter().map(|&x| {
-            match x {
+        let operands = split[1..]
+            .iter()
+            .map(|&x| match x {
                 _ if let Some(&x) = self.consts.get(x) => Ok(Operand::Immediate(x)),
                 _ if let Some(&x) = self.labels.get(x) => Ok(Operand::Immediate(x)),
                 _ => Operand::from_str(x),
-            }
-        }).collect::<Result<Vec<_>, _>>()?;
+            })
+            .collect::<Result<Vec<_>, _>>()?;
 
         opcode.binary(&operands)
     }
@@ -408,48 +415,28 @@ fn hex_array_literal(binary: &[u8]) -> String {
 
 #[cfg(test)]
 mod test {
-    use crate::asm::{Assembler, Sections};
+    use crate::asm::Assembler;
+    use hex_literal::hex;
 
     macro test_asm($name:literal) {
         include_str!(concat!("../tests/data/", $name, ".asm"))
     }
 
     #[test]
-    fn sections() {
-        let code = test_asm!("hello_world");
-        let sections = Sections::new(code).unwrap();
-        println!("{:?}", sections);
-    }
-
-    #[test]
-    fn assemble() {
+    fn asm_hello_world() {
         let code = test_asm!("hello_world");
         let assembler = Assembler::new(code).unwrap();
-        println!("{:#?}", assembler);
-        let target = assembler.assemble();
-        for x in target.binary.header {
-            print!("0x{:02x} ", x);
-        }
-        println!();
-        for x in target.binary.code.chunks(4) {
-            for x in x {
-                // print!("0x{:02x} ", x);
-                print!("0x{:02x} ", x);
-            }
-            println!();
-        }
-        println!();
-        println!("{}", target.commented_binary);
+        let binary = assembler.assemble().binary.merge();
+        assert_eq!(binary, hex!("010c001068656c6c6f2c20776f726c64830000004800000128010100030100074800010062000c1402000000"));
     }
 
     #[test]
-    fn foo() {
-        let data = [
-            1_u8, 17, 0, 21, 104, 101, 108, 108, 111, 44, 32, 119, 111, 114, 108, 100, 1, 2, 3, 4,
-            12, 131, 0, 0, 0, 72, 0, 0, 1, 40, 1, 1, 0, 3, 1, 0, 7, 72, 0, 1, 0, 98, 0, 12, 25, 2,
-        ];
-        for x in data {
-            print!("{:02x}", x);
-        }
+    fn asm_fibonacci() {
+        let code = test_asm!("fibonacci");
+        let target = Assembler::new(code).unwrap().assemble();
+        assert_eq!(target.binary.merge(), hex!("010a00660102030405060708090a300000003001000030020\
+        0003b0000006300014e490001003a0000003800000e3b010000490001003a0000003800000e3b0200000801020\
+        13a010000240000563a00000024000056310200003101000031000000390000008300000188000102280200003\
+        a0000003800000e3b000000290200004801010161010a8e2400006a02000000"));
     }
 }

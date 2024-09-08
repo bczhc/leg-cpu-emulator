@@ -1,11 +1,5 @@
-.consts
-not_used 0
-blabla 0xff
-
 .data 0
 text 'hello, world' text_len
-array [1, 2, 3, 0b100] array_len
-num 12 _
 
 .entry start
 
