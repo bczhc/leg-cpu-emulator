@@ -200,7 +200,7 @@ impl Assembler {
         for line in &code_section.body_lines {
             let mut line = line.trim();
             // remove comments
-            if let Some(x) = line.rsplit_once(';') {
+            if let Some(x) = line.split_once(';') {
                 line = x.0.trim();
             }
             // skip labels and empty lines
