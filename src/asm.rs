@@ -429,9 +429,8 @@ mod test {
     
     #[test]
     fn asm_selection_sort() {
-        // TODO: binary larger than 256 bytes
-        // let code = test_asm!("selection_sort");
-        // let target = Assembler::new(code).unwrap().assemble();
-        // println!("{}", target.commented_binary);
+        let code = test_asm!("selection_sort");
+        let target = Assembler::new(code).unwrap().assemble();
+        println!("{}", target.commented_binary);
     }
 }
