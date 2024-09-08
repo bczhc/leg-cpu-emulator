@@ -176,7 +176,7 @@ impl Assembler {
 
     fn assemble(&self) -> AssemblyTarget {
         let mut commented_binary = String::new();
-        
+
         let mut commented_binary_append = |b: &[u8], comment: &str| {
             use fmt::Write;
             if b.is_empty() {
@@ -203,7 +203,7 @@ impl Assembler {
                 continue;
             }
 
-            let inst = self.process_asm_statement(line).unwrap().1;
+            let inst = self.process_asm_statement(line).unwrap();
             inst.iter().for_each(|&x| code_binary.push(x));
             commented_binary_append(&inst, line);
         }
@@ -218,7 +218,7 @@ impl Assembler {
         }
     }
 
-    fn process_asm_statement(&self, line: &str) -> anyhow::Result<(String, [u8; 4])> {
+    fn process_asm_statement(&self, line: &str) -> anyhow::Result<[u8; 4]> {
         let mut inst = [0_u8; 4];
 
         let split = line.split(' ').collect::<Vec<_>>();
@@ -227,46 +227,15 @@ impl Assembler {
             Opcode::from_str(opcode_str).map_err(|_| anyhow!("Unknown opcode: {}", opcode_str))?;
         inst[0] = opcode as u8;
 
-        let mut process_operands =
-            |split_to_inst_indices: &[(usize, usize)]| -> anyhow::Result<()> {
-                let mut immediate_mask = 0b00000000_u8;
-                let mut process_operand =
-                    |split_index: usize, inst_index: usize| -> anyhow::Result<()> {
-                        let &operand = split
-                            .get(split_index)
-                            .ok_or(anyhow!("cp: missing operand"))?;
-                        let operand = match operand {
-                            _ if let Some(&x) = self.consts.get(operand) => Operand::Immediate(x),
-                            _ if let Some(&x) = self.labels.get(operand) => Operand::Immediate(x),
-                            _ => Operand::from_str(operand)?,
-                        };
+        let operands = split[1..].iter().map(|&x| {
+            match x {
+                _ if let Some(&x) = self.consts.get(x) => Ok(Operand::Immediate(x)),
+                _ if let Some(&x) = self.labels.get(x) => Ok(Operand::Immediate(x)),
+                _ => Operand::from_str(x),
+            }
+        }).collect::<Result<Vec<_>, _>>()?;
 
-                        inst[inst_index] = operand.to_u8();
-                        if operand.is_immediate() && inst_index == 1 {
-                            immediate_mask |= 0b10000000;
-                        }
-                        if operand.is_immediate() && inst_index == 2 {
-                            immediate_mask |= 0b01000000;
-                        }
-                        Ok(())
-                    };
-                for x in split_to_inst_indices {
-                    process_operand(x.0, x.1)?;
-                }
-                inst[0] = (inst[0] & 0b00111111) | immediate_mask; /* set the imm. mask bits */
-                Ok(())
-            };
-
-        match opcode {
-            Opcode::Copy => process_operands(&[(1, 1), (2, 3)])?,
-            Opcode::Add => process_operands(&[(1, 1), (2, 2), (3, 3)])?,
-            Opcode::Load => process_operands(&[(1, 1), (2, 2)])?,
-            Opcode::JpLt => process_operands(&[(1, 1), (2, 2), (3, 3)])?,
-            Opcode::Halt => process_operands(&[])?,
-            _ => {}
-        };
-
-        Ok((Default::default() /* TODO */, inst))
+        opcode.binary(&operands)
     }
 }
 

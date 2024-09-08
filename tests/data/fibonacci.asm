@@ -1,21 +1,9 @@
-const m_data 0
-const data_len 10
+.consts
 
-.data
-m_data(0) 1 2 3 4 5 6 7 8 9 10
+.data 0
+m_data [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] data_len
 
-.prepare copystatic data_len m_data
-1 2 3 4 5 6 7 8 9 10
-
-.prepare entry start
-
-const m_data 0
-const data_len 10
-
-static data_len m_data
-1 2 3 4 5 6 7 8 9 10
-
-entry start
+.entry start
 
 f_fib:
     push r0 ; back up registers
