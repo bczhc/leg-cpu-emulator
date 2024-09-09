@@ -249,7 +249,7 @@ impl Assembler {
                 .iter()
                 .map(|&x| match x {
                     _ if let Some(&x) = self.consts.get(x) => Ok(Operand::Immediate(x)),
-                    _ => Operand::from_str(x),
+                    _ => Operand::from_str(x).map_err(|_| anyhow!("Cannot parse operand: {x}")),
                 })
                 .collect::<Result<Vec<_>, _>>()?
         };
