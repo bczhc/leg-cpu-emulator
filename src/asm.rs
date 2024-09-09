@@ -164,7 +164,10 @@ impl Assembler {
         let mut map = HashMap::new();
         let mut offset = 0;
         for line in code_section_lines {
-            let line = line.trim();
+            let line = Self::remove_comment(line.trim());
+            if line.is_empty() {
+                continue;
+            }
             if let Some(x) = line.strip_suffix(':') {
                 map.insert(x.into(), offset);
                 continue;
@@ -198,11 +201,7 @@ impl Assembler {
         let mut code_binary = Vec::new();
         let code_section = self.sections.find("code").unwrap();
         for line in &code_section.body_lines {
-            let mut line = line.trim();
-            // remove comments
-            if let Some(x) = line.split_once(';') {
-                line = x.0.trim();
-            }
+            let line = Self::remove_comment(line.trim());
             // skip labels and empty lines
             if line.ends_with(':') || line.is_empty() {
                 commented_binary_append(&[], line);
@@ -243,6 +242,14 @@ impl Assembler {
             .collect::<Result<Vec<_>, _>>()?;
 
         opcode.binary(&operands)
+    }
+    
+    fn remove_comment(line: &str) -> &str {
+        if let Some(x) = line.split_once(';') {
+            x.0.trim()
+        } else {
+            line
+        }
     }
 }
 
@@ -426,11 +433,13 @@ mod test {
         13a010000240000563a00000024000056310200003101000031000000390000008300000188000102280200003\
         a0000003800000e3b000000290200004801010161010a8e2400006a02000000"));
     }
-    
+
     #[test]
     fn asm_selection_sort() {
         let code = test_asm!("selection_sort");
-        let target = Assembler::new(code).unwrap().assemble();
+        let assembler = Assembler::new(code).unwrap();
+        let target = assembler.assemble();
+        println!("{:#?}", assembler);
         println!("{}", target.commented_binary);
     }
 }

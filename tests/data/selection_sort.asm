@@ -23,8 +23,8 @@ f_sort:
     cp r1 r4
     if1:
     ; -------------
-    jplt r1 r0 loop2
     add r1 1 r1
+    jplt r1 r0 loop2
 
     ; if (min_idx != i) swap(&arr[min_idx], &arr[i]);
     jpeq r4 r2 if2
@@ -33,6 +33,11 @@ f_sort:
     st r2 r3
     st r4 r5
     if2:
+
+    ; ----------------
+    add r2 1 r2
+    jplt r2 r0 loop1
+
     pop r0
     ret
 
