@@ -1,7 +1,6 @@
-use crate::opcode::{Opcode, Operand};
+use crate::opcode::{Opcode, Operand, COPY_STATIC_HEADER};
 use crate::VecExt;
 use anyhow::anyhow;
-use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
@@ -17,7 +16,7 @@ pub struct Assembler {
     code: String,
     lines: Vec<String>,
     consts: HashMap<String, u8>,
-    labels: HashMap<String, u8>,
+    labels: HashMap<String, u16>,
     sections: Sections,
     /// The `copystatic` portion.
     binary_header: Vec<u8>,
@@ -113,11 +112,11 @@ impl Assembler {
         // correct labels
         // add the initial 4-byte `copystatic` instruction along with its data
         for x in labels.values_mut() {
-            *x += INST_LENGTH;
+            *x += INST_LENGTH as u16;
             *x += copy_static_data
                 .as_ref()
                 .map(|x| x.len())
-                .unwrap_or_default() as u8;
+                .unwrap_or_default() as u16;
         }
 
         let entry_section = sections
@@ -133,10 +132,12 @@ impl Assembler {
             .ok_or(anyhow!("Cannot find entrypoint: {entrypoint}"))?;
         binary_header.push_all(
             [
-                Opcode::CopyStatic as u8,
+                COPY_STATIC_HEADER,
                 copy_static_info.0,
                 copy_static_info.1,
-                entrypoint_addr,
+                entrypoint_addr
+                    .try_into()
+                    .map_err(|_| anyhow!("entrypoint does not support 16-bit address"))?,
             ]
             .into_iter(),
         );
@@ -160,9 +161,9 @@ impl Assembler {
         })
     }
 
-    fn read_labels(code_section_lines: &[String]) -> HashMap<String, u8> {
+    fn read_labels(code_section_lines: &[String]) -> HashMap<String, u16> {
         let mut map = HashMap::new();
-        let mut offset = 0;
+        let mut offset = 0_u16;
         for line in code_section_lines {
             let line = Self::remove_comment(line.trim());
             if line.is_empty() {
@@ -172,7 +173,7 @@ impl Assembler {
                 map.insert(x.into(), offset);
                 continue;
             }
-            offset += INST_LENGTH;
+            offset += INST_LENGTH as u16;
         }
         map
     }
@@ -232,14 +233,26 @@ impl Assembler {
             Opcode::from_str(opcode_str).map_err(|_| anyhow!("Unknown opcode: {}", opcode_str))?;
         inst[0] = opcode as u8;
 
-        let operands = split[1..]
-            .iter()
-            .map(|&x| match x {
-                _ if let Some(&x) = self.consts.get(x) => Ok(Operand::Immediate(x)),
-                _ if let Some(&x) = self.labels.get(x) => Ok(Operand::Immediate(x)),
-                _ => Operand::from_str(x),
-            })
-            .collect::<Result<Vec<_>, _>>()?;
+        // special handles for opcodes that have 16-bit immediate operands
+        let operands = if opcode == Opcode::JumpAddrMove || opcode == Opcode::Call {
+            // `jamv` and `call` only support label operands for now
+            let label = split[1];
+            let Some(&label) = self.labels.get(label) else {
+                yeet!(anyhow!("Label not found: {label}"))
+            };
+            // LEG uses big-endianness
+            let high = (label >> 8) as u8;
+            let low = (label & 0x00ff_u16) as u8;
+            vec![Operand::Immediate(high), Operand::Immediate(low)]
+        } else {
+            split[1..]
+                .iter()
+                .map(|&x| match x {
+                    _ if let Some(&x) = self.consts.get(x) => Ok(Operand::Immediate(x)),
+                    _ => Operand::from_str(x),
+                })
+                .collect::<Result<Vec<_>, _>>()?
+        };
 
         opcode.binary(&operands)
     }

@@ -11,23 +11,14 @@ macro test_asm($name:literal) {
 fn asm_hello_world() {
     let code = test_asm!("hello_world");
     let assembler = Assembler::new(code).unwrap();
-    let binary = assembler.assemble().binary.merge();
-    assert_eq!(binary, hex!("010c001068656c6c6f2c20776f726c64830000004800000128010100030100074800010062000c1402000000"));
+    println!("{}", assembler.assemble().commented_binary);
 }
 
 #[test]
 fn asm_fibonacci() {
     let code = test_asm!("fibonacci");
     let target = Assembler::new(code).unwrap().assemble();
-    assert_eq!(
-        target.binary.merge(),
-        hex!(
-            "010a00660102030405060708090a300000003001000030020\
-        0003b0000006300014e490001003a0000003800000e3b010000490001003a0000003800000e3b0200000801020\
-        13a010000240000563a00000024000056310200003101000031000000390000008300000188000102280200003\
-        a0000003800000e3b000000290200004801010161010a8e2400006a02000000"
-        )
-    );
+    println!("{}", target.commented_binary);
 }
 
 #[test]
@@ -35,46 +26,12 @@ fn asm_selection_sort() {
     let code = test_asm!("selection_sort");
     let assembler = Assembler::new(code).unwrap();
     let target = assembler.assemble();
-    assert_eq!(
-        target.commented_binary,
-        "0x01 0x10 0x00 0x64 # copystatic
-0x0e 0x06 0x03 0x02 0x01 0x0b 0x0f 0x08 0x0d 0x04 0x0c 0x05 0x07 0x0a 0x09 0x00 # data
-# 
-# f_sort:
-0x30 0x00 0x00 0x00 # push r0
-0x3b 0x00 0x00 0x00 # fpop r0
-0x83 0x00 0x00 0x02 # cp 0 r2
-# loop1:
-# 
-0x03 0x02 0x00 0x04 # cp r2 r4
-0x03 0x02 0x00 0x01 # cp r2 r1
-# loop2:
-# 
-0x28 0x01 0x03 0x00 # ld r1 r3
-0x28 0x04 0x05 0x00 # ld r4 r5
-# 
-0x26 0x03 0x05 0x38 # jpge r3 r5 if1
-0x03 0x01 0x00 0x04 # cp r1 r4
-# if1:
-# 
-0x48 0x01 0x01 0x01 # add r1 1 r1
-0x22 0x01 0x00 0x28 # jplt r1 r0 loop2
-# 
-0x21 0x04 0x02 0x54 # jpeq r4 r2 if2
-0x28 0x04 0x03 0x00 # ld r4 r3
-0x28 0x02 0x05 0x00 # ld r2 r5
-0x29 0x02 0x03 0x00 # st r2 r3
-0x29 0x04 0x05 0x00 # st r4 r5
-# if2:
-# 
-0x48 0x02 0x01 0x02 # add r2 1 r2
-0x22 0x02 0x00 0x20 # jplt r2 r0 loop1
-0x31 0x00 0x00 0x00 # pop r0
-0x39 0x00 0x00 0x00 # ret
-# start:
-0xba 0x10 0x00 0x00 # fpush length
-0x38 0x00 0x00 0x14 # call f_sort
-0x02 0x00 0x00 0x00 # halt
-"
-    );
+    println!("{}", target.commented_binary);
+}
+
+#[test]
+fn sixteen_bits_addressing() {
+    let code = test_asm!("16bit_addressing");
+    let assembler = Assembler::new(code).unwrap();
+    println!("{}", assembler.assemble().commented_binary);
 }

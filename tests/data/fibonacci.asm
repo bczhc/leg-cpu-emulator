@@ -12,7 +12,8 @@ f_fib:
     push r2
 
     fpop r0 ; arg1: n
-    jple r0 1 if_L1 ; if n <= 1, return n
+    jamv if_L1
+    jple r0 1 ; if n <= 1, return n
     sub r0 1 r0
     fpush r0
     call f_fib ; fib(n-1)
@@ -23,11 +24,13 @@ f_fib:
     fpop r2
     add r1 r2 r1
     fpush r1 ; will return fib(n-1) + fib(n-2)
-    jp f_fib_ret
+    jamv f_fib_ret
+    jp
 
     if_L1:
     fpush r0
-    jp f_fib_ret
+    jamv f_fib_ret
+    jp
     f_fib_ret:
     pop r2
     pop r1
@@ -46,7 +49,9 @@ start:
     st r2 r0
 
     add r1 1 r1
-    jpeq r1 data_len for_L2
-    jp for_L1
+    jamv for_L2
+    jpeq r1 data_len
+    jamv for_L1
+    jp
     for_L2:
     halt

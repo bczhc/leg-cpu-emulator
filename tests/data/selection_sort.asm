@@ -19,15 +19,18 @@ f_sort:
     ld r1 r3 ; r3 <- arr[j]
     ld r4 r5 ; r5 <- arr[min_idx]
     ; if (arr[j] < arr[min_idx] min_idx = j;
-    jpge r3 r5 if1
+    jamv if1
+    jpge r3 r5
     cp r1 r4
     if1:
     ; -------------
     add r1 1 r1
-    jplt r1 r0 loop2
+    jamv loop2
+    jplt r1 r0
 
     ; if (min_idx != i) swap(&arr[min_idx], &arr[i]);
-    jpeq r4 r2 if2
+    jamv if2
+    jpeq r4 r2
     ld r4 r3
     ld r2 r5
     st r2 r3
@@ -36,7 +39,8 @@ f_sort:
 
     ; ----------------
     add r2 1 r2
-    jplt r2 r0 loop1
+    jamv loop1
+    jplt r2 r0
 
     pop r0
     ret

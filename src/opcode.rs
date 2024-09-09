@@ -3,6 +3,8 @@ use anyhow::anyhow;
 use std::str::FromStr;
 use strum_macros::EnumString;
 
+pub const COPY_STATIC_HEADER: u8 = 0b00000001;
+
 #[repr(u8)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, EnumString)]
 #[strum(ascii_case_insensitive)]
@@ -51,10 +53,12 @@ pub enum Opcode {
     Div = 0b00011000,
     Mod = 0b00011001,
     /* Miscellaneous */
-    CopyStatic = 0b00000001,
     Halt = 0b00000010,
     #[strum(serialize = "cp")]
     Copy = 0b00000011,
+    #[strum(serialize = "jamv")]
+    JumpAddrMove = 0b00000100,
+    Nop = 0b00000101,
 }
 
 #[repr(u8)]
@@ -145,18 +149,18 @@ impl Opcode {
             Opcode::Xor => (3, [1, 2, 3]),
             Opcode::MulLow => (3, [1, 2, 3]),
             Opcode::MulHigh => (3, [1, 2, 3]),
-            Opcode::JpEq => (3, [1, 2, 3]),
-            Opcode::JpGe => (3, [1, 2, 3]),
-            Opcode::JpGt => (3, [1, 2, 3]),
-            Opcode::JpLe => (3, [1, 2, 3]),
-            Opcode::JpLt => (3, [1, 2, 3]),
-            Opcode::JpNe => (3, [1, 2, 3]),
-            Opcode::Jp => (1, [0, 0, 1]),
+            Opcode::JpEq => (2, [1, 2, 0]),
+            Opcode::JpGe => (2, [1, 2, 0]),
+            Opcode::JpGt => (2, [1, 2, 0]),
+            Opcode::JpLe => (2, [1, 2, 0]),
+            Opcode::JpLt => (2, [1, 2, 0]),
+            Opcode::JpNe => (2, [1, 2, 0]),
+            Opcode::Jp => (0, [0, 0, 0]),
             Opcode::Load => (2, [1, 2, 0]),
             Opcode::Store => (2, [1, 2, 0]),
             Opcode::Push => (1, [1, 0, 0]),
             Opcode::Pop => (1, [1, 0, 0]),
-            Opcode::Call => (1, [0, 0, 1]),
+            Opcode::Call => (2, [0, 1, 2]),
             Opcode::Return => (0, [0, 0, 0]),
             Opcode::FPush => (1, [1, 0, 0]),
             Opcode::FPop => (1, [1, 0, 0]),
@@ -166,9 +170,10 @@ impl Opcode {
             Opcode::WShr => (3, [1, 2, 3]),
             Opcode::Div => (3, [1, 2, 3]),
             Opcode::Mod => (3, [1, 2, 3]),
-            Opcode::CopyStatic => (0, [0, 0, 0]),
             Opcode::Halt => (0, [0, 0, 0]),
             Opcode::Copy => (2, [1, 0, 2]),
+            Opcode::JumpAddrMove => (2, [0, 1, 2]),
+            Opcode::Nop => (0, [0, 0, 0]),
         }
     }
 
