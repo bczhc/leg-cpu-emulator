@@ -49,9 +49,10 @@ pub enum Opcode {
     WShl = 0b00010010,
     /// Wrapping shift right
     WShr = 0b00010011,
-    /* Divisions */
+    /* Arithmetic Supplementary */
     Div = 0b00011000,
     Mod = 0b00011001,
+    CAdd = 0b00011010,
     /* Miscellaneous */
     Halt = 0b00000010,
     #[strum(serialize = "cp")]
@@ -174,6 +175,7 @@ impl Opcode {
             Opcode::Copy => (2, [1, 0, 2]),
             Opcode::JumpAddrMove => (2, [0, 1, 2]),
             Opcode::Nop => (0, [0, 0, 0]),
+            Opcode::CAdd => (3, [1, 2, 3]),
         }
     }
 

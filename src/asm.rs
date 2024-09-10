@@ -384,8 +384,12 @@ fn parse_u8_literal(s: &str) -> Option<u8> {
 fn parse_data_array(s: &str) -> Option<Vec<u8>> {
     s.starts_with("[").then_some(())?;
     s.ends_with("]").then_some(())?;
+    let content = &s[1..(s.len() - 1)];
+    if content.trim().is_empty() {
+        return Some(vec![]);
+    }
     let mut items = Vec::new();
-    for x in s[1..(s.len() - 1)].split(",") {
+    for x in content.split(",") {
         items.push(parse_u8_literal(x.trim())?);
     }
     Some(items)

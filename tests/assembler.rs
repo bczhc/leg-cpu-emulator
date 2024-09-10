@@ -35,3 +35,12 @@ fn sixteen_bits_addressing() {
     let assembler = Assembler::new(code).unwrap();
     println!("{}", assembler.assemble().commented_binary);
 }
+
+fn assemble_to_commented_binary(code: &str) -> String {
+    Assembler::new(code).unwrap().assemble().commented_binary
+}
+
+#[test]
+fn multibyte_integer_add() {
+    println!("{}", assemble_to_commented_binary(test_asm!("multibyte-integer-adding")));
+}
