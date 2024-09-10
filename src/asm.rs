@@ -240,10 +240,10 @@ impl Assembler {
             let Some(&label) = self.labels.get(label) else {
                 yeet!(anyhow!("Label not found: {label}"))
             };
-            // LEG uses big-endianness
             let high = (label >> 8) as u8;
             let low = (label & 0x00ff_u16) as u8;
-            vec![Operand::Immediate(high), Operand::Immediate(low)]
+            // LEG uses small-endianness
+            vec![Operand::Immediate(low), Operand::Immediate(high)]
         } else {
             split[1..]
                 .iter()
