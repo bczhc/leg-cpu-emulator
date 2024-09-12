@@ -1,5 +1,5 @@
-use crate::opcode::{Opcode, Operand, COPY_STATIC_HEADER};
-use crate::VecExt;
+use crate::instruction::{Opcode, Operand, COPY_STATIC_HEADER};
+use crate::{parse_u8_literal, VecExt};
 use anyhow::anyhow;
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
@@ -369,16 +369,6 @@ fn parse_quoted_string(s: &str) -> Option<String> {
 
     let content = &s[1..(s.len() - 1)];
     Some(content.replace("''", "'"))
-}
-
-fn parse_u8_literal(s: &str) -> Option<u8> {
-    if let Some(x) = s.strip_prefix("0x") {
-        u8::from_str_radix(x, 16).ok()
-    } else if let Some(x) = s.strip_prefix("0b") {
-        u8::from_str_radix(x, 2).ok()
-    } else {
-        s.parse::<u8>().ok()
-    }
 }
 
 fn parse_data_array(s: &str) -> Option<Vec<u8>> {

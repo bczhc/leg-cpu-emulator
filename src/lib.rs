@@ -5,7 +5,7 @@
 #![feature(if_let_guard)]
 
 pub mod asm;
-pub mod opcode;
+pub mod instruction;
 
 pub const DIGITS: [char; 10] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
@@ -21,5 +21,15 @@ impl<T> VecExt<T> for Vec<T> where T: Copy + Sized {
         for x in items {
             self.push(x);
         }
+    }
+}
+
+pub fn parse_u8_literal(s: &str) -> Option<u8> {
+    if let Some(x) = s.strip_prefix("0x") {
+        u8::from_str_radix(x, 16).ok()
+    } else if let Some(x) = s.strip_prefix("0b") {
+        u8::from_str_radix(x, 2).ok()
+    } else {
+        s.parse::<u8>().ok()
     }
 }

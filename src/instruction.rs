@@ -1,6 +1,7 @@
-use crate::DIGITS;
+use crate::{parse_u8_literal, DIGITS};
 use anyhow::anyhow;
 use std::str::FromStr;
+use strum::ParseError;
 use strum_macros::EnumString;
 
 pub const COPY_STATIC_HEADER: u8 = 0b00000001;
@@ -66,15 +67,29 @@ pub enum Opcode {
 #[derive(Debug, Copy, Clone, Eq, PartialEq, EnumString)]
 #[strum(ascii_case_insensitive)]
 pub enum OperandSymbol {
+    /* generic registers */
     R0 = 0,
     R1 = 1,
     R2 = 2,
     R3 = 3,
     R4 = 4,
     R5 = 5,
-    Pc = 6,
+    R6 = 6,
+    R7 = 7,
+    R8 = 8,
+    R9 = 9,
+    R10 = 10,
+    R11 = 11,
+    /* ------------------ */
+    /// Input or output.
     #[strum(serialize = "in", serialize = "out")]
-    InOut = 7,
+    InOut = 12,
+    /// Always-one register.
+    Aor = 13,
+    /// Always-zero register.
+    Azr = 14,
+    /// Function stack start.
+    Fss = 15,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -83,14 +98,27 @@ pub enum Operand {
     Symbol(OperandSymbol),
 }
 
+impl From<u8> for Operand {
+    fn from(value: u8) -> Self {
+        Self::Immediate(value)
+    }
+}
+
+impl From<OperandSymbol> for Operand {
+    fn from(value: OperandSymbol) -> Self {
+        Self::Symbol(value)
+    }
+}
+
 impl FromStr for Operand {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.starts_with(DIGITS) {
-            Ok(Self::Immediate(s.parse::<u8>()?))
-        } else {
-            Ok(Operand::Symbol(OperandSymbol::from_str(s)?))
+        match parse_u8_literal(s) {
+            Some(x) => { Ok(x.into())}
+            None => {
+                OperandSymbol::from_str(s).map(Into::into).map_err(Into::into)
+            }
         }
     }
 }
