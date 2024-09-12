@@ -9,7 +9,7 @@ use std::str::FromStr;
 use yeet_ops::yeet;
 
 /// LEG-Architecture uses fixed-length instructions.
-const INST_LENGTH: u8 = 4;
+pub const INST_LENGTH: u8 = 4;
 
 #[derive(Debug)]
 pub struct Assembler {
@@ -107,6 +107,7 @@ impl Assembler {
                 }
                 mem_start += u8::try_from(data_byte.len())?;
             }
+            // here mem_start is the static data length
             copy_static_info.0 = mem_start;
             copy_static_data = Some(static_data);
         }

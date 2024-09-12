@@ -1,12 +1,24 @@
 use crate::parse_u8_literal;
 use anyhow::anyhow;
+use num_enum::{FromPrimitive, TryFromPrimitive};
 use std::str::FromStr;
 use strum_macros::EnumString;
 
 pub const COPY_STATIC_HEADER: u8 = 0b00000001;
 
+/// ## Opcode format
+///
+/// bits: MMTTTSSS
+///
+/// - MM: Immediate number masks
+///    - 10: take the first operand as immediate
+///    - 01: take the second operand as immediate
+///    - 11: ... all the two
+///    - 00: ... none
+/// - TTT: Type
+/// - SSS: Subtype
 #[repr(u8)]
-#[derive(Debug, Copy, Clone, Eq, PartialEq, EnumString)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, EnumString, TryFromPrimitive)]
 #[strum(ascii_case_insensitive)]
 pub enum Opcode {
     /* Compute */
@@ -69,7 +81,7 @@ pub enum Opcode {
 }
 
 #[repr(u8)]
-#[derive(Debug, Copy, Clone, Eq, PartialEq, EnumString)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, EnumString, TryFromPrimitive)]
 #[strum(ascii_case_insensitive)]
 pub enum OperandSymbol {
     /* generic registers */
@@ -162,7 +174,7 @@ impl Opcode {
     /// Example:
     /// ASM code `cp 123 r1` (move u8 immediate '123' to register 1)
     /// will be processed to `<cp-opcode-binary> 123 <zero-pad> <r1-code>`
-    /// namely the binary `0b10000011 123 0 0b001`.
+    /// namely `[0b10000011, 123, 0, 0b001]`.
     ///
     /// Say we have asm\[3\] = \['cp', 123, 'r1'\], and inst\[4\] = {0},
     /// the mapping is:
@@ -250,4 +262,20 @@ impl Opcode {
 
         Ok(inst)
     }
+}
+
+pub const OPCODE_TYPE_MASK: u8 = 0b00111000;
+pub const OPCODE_SUBTYPE_MASK: u8 = 0b00000111;
+
+#[repr(u8)]
+#[derive(Debug, TryFromPrimitive)]
+pub enum OpcodeType {
+    Compute = 0b001,
+    ConditionalJumping = 0b100,
+    Memory = 0b101,
+    Stack = 0b110,
+    Functions = 0b111,
+    Shifts = 0b010,
+    ArithmeticSupplementary = 0b011,
+    Miscellaneous = 0b000,
 }
