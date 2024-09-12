@@ -73,6 +73,7 @@ impl Assembler {
             .ok_or(anyhow!("Missing .code section"))?;
         let mut labels = Self::read_labels(&code_section.body_lines);
 
+        // parse .data section
         if let Some(s) = sections.find("data") {
             let mut static_data = Vec::new();
 
@@ -80,6 +81,7 @@ impl Assembler {
             let mut mem_start = mem_start.parse::<u8>()?;
             copy_static_info.1 = mem_start;
             for line in &s.body_lines {
+                let line = Self::remove_comment(line);
                 let parts = regex!(r#"^(\S+) (.*?) (\S+)$"#)
                     .capture_vec(line)
                     .ok_or(anyhow!(".data: syntax error"))?;

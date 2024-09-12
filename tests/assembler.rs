@@ -1,6 +1,5 @@
 #![feature(decl_macro)]
 
-use hex_literal::hex;
 use leg_cpu_emulator::asm::Assembler;
 
 macro test_asm($name:literal) {
@@ -42,5 +41,16 @@ fn assemble_to_commented_binary(code: &str) -> String {
 
 #[test]
 fn multibyte_integer_add() {
-    println!("{}", assemble_to_commented_binary(test_asm!("multibyte-integer-adding")));
+    println!(
+        "{}",
+        assemble_to_commented_binary(test_asm!("multibyte-integer-adding"))
+    );
+}
+
+#[test]
+fn function_stack() {
+    println!(
+        "{}",
+        assemble_to_commented_binary(test_asm!("function_stack"))
+    );
 }

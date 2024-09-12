@@ -1,7 +1,6 @@
-use crate::{parse_u8_literal, DIGITS};
+use crate::parse_u8_literal;
 use anyhow::anyhow;
 use std::str::FromStr;
-use strum::ParseError;
 use strum_macros::EnumString;
 
 pub const COPY_STATIC_HEADER: u8 = 0b00000001;
@@ -54,6 +53,12 @@ pub enum Opcode {
     Div = 0b00011000,
     Mod = 0b00011001,
     CAdd = 0b00011010,
+    /// Add with no carry set.
+    Anc = 0b00011011,
+    /// Subtract with no carry set.
+    Snc = 0b00011100,
+    /// Move carry to register.
+    Mvc = 0b00011101,
     /* Miscellaneous */
     Halt = 0b00000010,
     #[strum(serialize = "cp")]
@@ -115,10 +120,10 @@ impl FromStr for Operand {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match parse_u8_literal(s) {
-            Some(x) => { Ok(x.into())}
-            None => {
-                OperandSymbol::from_str(s).map(Into::into).map_err(Into::into)
-            }
+            Some(x) => Ok(x.into()),
+            None => OperandSymbol::from_str(s)
+                .map(Into::into)
+                .map_err(Into::into),
         }
     }
 }
@@ -204,6 +209,9 @@ impl Opcode {
             Opcode::JumpAddrMove => (2, [0, 1, 2]),
             Opcode::Nop => (0, [0, 0, 0]),
             Opcode::CAdd => (3, [1, 2, 3]),
+            Opcode::Anc => (3, [1, 2, 3]),
+            Opcode::Snc => (3, [1, 2, 3]),
+            Opcode::Mvc => (1, [0, 0, 3]),
         }
     }
 
