@@ -1,6 +1,6 @@
 #![feature(decl_macro)]
 
-use leg_cpu_emulator::asm::Assembler;
+use leg_cpu_emulator::assembler::Assembler;
 
 macro test_asm($name:literal) {
     include_str!(concat!("../tests/data/", $name, ".asm"))

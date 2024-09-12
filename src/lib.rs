@@ -4,7 +4,7 @@
 #![feature(try_blocks)]
 #![feature(if_let_guard)]
 
-pub mod asm;
+pub mod assembler;
 pub mod instruction;
 
 pub const DIGITS: [char; 10] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];

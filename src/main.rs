@@ -1,4 +1,4 @@
-use leg_cpu_emulator::asm::Assembler;
+use leg_cpu_emulator::assembler::Assembler;
 
 fn main() {
     println!(
