@@ -9,6 +9,7 @@ use anyhow::anyhow;
 use num_traits::{AsPrimitive, WrappingAdd};
 use std::ops::{AddAssign, Deref};
 use yeet_ops::yeet;
+use log::debug;
 
 #[derive(Default, Debug)]
 pub struct Emulator {
@@ -131,10 +132,11 @@ impl Emulator {
         };
 
         let opcode_u8 = inst[0] & 0b00111111;
-        let Ok(_opcode) = Opcode::try_from(opcode_u8) else {
+        let Ok(opcode) = Opcode::try_from(opcode_u8) else {
             // skip unknown opcodes
             end!()
         };
+        debug!("Opcode: {:?}", opcode);
 
         // immediate number masks
         let imm1 = inst[0] & 0b10000000 == 0b10000000;
@@ -183,8 +185,7 @@ impl Emulator {
                     }
                     0b001 => {
                         // store
-                        let value = self.reg_fetch(inst[2]);
-                        self.ram[operand1 as usize] = value;
+                        self.ram[operand1 as usize] = operand2;
                     }
                     _ => {}
                 }
