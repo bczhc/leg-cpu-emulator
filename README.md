@@ -94,4 +94,12 @@ For the code that can be used in Turing Complete, use:
 0x02 0x00 0x00 0x00 # halt
 ```
 
+[`water_world.asm`](https://github.com/bczhc/leg-cpu-emulator/blob/master/tests/asm/water_world.asm):
+```console
+❯ echo '4,6,1,4,6,5,1,4,1,2,6,5,6,1,4,2' | target/debug/leg tests/asm/water_world.asm -r --stdin
+28
+❯ echo '5,6,2,5,1,3,2,1,1,1,1,1,1,1,1,1' | target/debug/leg tests/asm/water_world.asm -r --stdin
+5
+```
+
 More examples are under [tests](https://github.com/bczhc/leg-cpu-emulator/tree/master/tests).
