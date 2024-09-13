@@ -6,8 +6,7 @@ use crate::instruction::{
 };
 use anyhow::anyhow;
 use num_traits::{AsPrimitive, WrappingAdd};
-use std::hint;
-use std::ops::{Add, AddAssign, Deref};
+use std::ops::{AddAssign, Deref};
 use yeet_ops::yeet;
 
 #[derive(Default, Debug)]
@@ -325,6 +324,20 @@ impl Emulator {
             // do not handle
             _ => {}
         }
+    }
+    
+    pub fn run_to_halt(&mut self) -> anyhow::Result<Vec<u8>> {
+        let mut output = Vec::new();
+        loop {
+            self.tick()?;
+            if self.halted {
+                break;
+            }
+            if let Some(x) = self.output {
+                output.push(*x);
+            }
+        }
+        Ok(output)
     }
 }
 
