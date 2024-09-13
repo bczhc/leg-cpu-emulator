@@ -29,9 +29,8 @@ pub struct Registers {
     ///
     /// Tier1 registers can be set via `cp`, `st`, `ld`, `add` etc.
     ///
-    /// Note: this is just the place allocated for them, do not fetch it
-    /// directly via `[]` indexing, instead, for read/write operations,
-    /// use [`Registers::fetch`] and [`Registers::write`].
+    /// Note: this is just the place allocated for them, and some of them
+    /// may be useless. Use `tier1[regN]` to index.
     tier1: Vec<u8>,
     /// Carry flag.
     ///
@@ -54,43 +53,6 @@ impl Default for Registers {
 }
 
 impl Registers {
-    fn fetch(&self, reg: u8) -> u8 {
-        match reg {
-            // r0 to r11
-            _ if reg <= 11 => self.tier1[reg as usize],
-            12 => {
-                // read input
-                // should be handled outer-level
-                0 /* TODO */
-            }
-            // always one
-            13 => 1,
-            // always zero
-            14 => 0,
-            // function stack start
-            15 => self.tier1[reg as usize],
-            // do not handle
-            _ => 0,
-        }
-    }
-
-    fn write(&mut self, reg: u8, n: u8) {
-        match reg {
-            _ if reg <= 11 || reg == 15 => {
-                self.tier1[reg as usize] = n;
-            }
-            12 => {
-                // output
-                println!("Output: {}", n);
-            }
-            // writing to always x registers takes no effect
-            13 => {}
-            14 => {}
-            // do not handle
-            _ => {}
-        }
-    }
-
     fn carry_u8(&self) -> u8 {
         self.carry.into()
     }
@@ -171,7 +133,7 @@ impl Emulator {
                 let Ok(reg) = crate::instruction::OperandSymbol::try_from(inst[$inst_index]) else {
                     end!()
                 };
-                self.registers.fetch(reg as u8)
+                self.reg_fetch(reg as u8)
             }
         }
         let operand1 = get_operand!(imm1, 1);
@@ -182,7 +144,7 @@ impl Emulator {
         match opcode_type {
             OpcodeType::Compute => {
                 let out = components::alu(opcode_u8, operand1, operand2);
-                self.registers.write(inst[3], out.out);
+                self.reg_write(inst[3], out.out);
                 self.registers.carry = out.carry;
             }
             OpcodeType::ConditionalJumping => {
@@ -198,11 +160,11 @@ impl Emulator {
                     0b000 => {
                         // load
                         let v = self.ram[operand1 as usize];
-                        self.registers.write(inst[2], v);
+                        self.reg_write(inst[2], v);
                     }
                     0b001 => {
                         // store
-                        let value = self.registers.fetch(inst[2]);
+                        let value = self.reg_fetch(inst[2]);
                         self.ram[operand1 as usize] = value;
                     }
                     _ => {}
@@ -217,7 +179,7 @@ impl Emulator {
                     0b001 => {
                         // pop
                         let value = self.stack.pop().unwrap_or_default();
-                        self.registers.write(inst[1], value);
+                        self.reg_write(inst[1], value);
                     }
                     _ => {}
                 }
@@ -247,47 +209,47 @@ impl Emulator {
                     0b011 => {
                         // fpop
                         let value = self.f_args_stack.pop().unwrap_or_default();
-                        self.registers.write(inst[1], value);
+                        self.reg_write(inst[1], value);
                     }
                     _ => {}
                 }
             }
             OpcodeType::Shifts => {
                 let out = components::shift(opcode_u8, operand1, operand2);
-                self.registers.write(inst[3], out);
+                self.reg_write(inst[3], out);
             }
             OpcodeType::ArithmeticSupplementary => {
                 match opcode_subtype {
                     0b000 => {
                         // div
-                        self.registers.write(inst[3], operand1 / operand2);
+                        self.reg_write(inst[3], operand1 / operand2);
                     }
                     0b001 => {
                         // mod
-                        self.registers.write(inst[3], operand1 % operand2);
+                        self.reg_write(inst[3], operand1 % operand2);
                     }
                     0b010 => {
                         // carry-add
                         let value = operand1
                             .wrapping_add(operand2)
                             .wrapping_add(self.registers.carry_u8());
-                        self.registers.write(inst[3], value);
+                        self.reg_write(inst[3], value);
                         // also set the carry bit
                     }
                     0b011 => {
                         // add-no-carry
                         let value = operand1.wrapping_add(operand2);
-                        self.registers.write(inst[3], value);
+                        self.reg_write(inst[3], value);
                     }
                     0b100 => {
                         // sub-no-carry
                         let value = operand1.wrapping_sub(operand2);
-                        self.registers.write(inst[3], value);
+                        self.reg_write(inst[3], value);
                     }
                     0b101 => {
                         // move-carry
                         let value = self.registers.carry_u8();
-                        self.registers.write(inst[3], value);
+                        self.reg_write(inst[3], value);
                     }
                     _ => {}
                 }
@@ -300,7 +262,7 @@ impl Emulator {
                     }
                     0b011 => {
                         // copy
-                        self.registers.write(inst[3], operand1);
+                        self.reg_write(inst[3], operand1);
                     }
                     0b100 => {
                         // jump-address move
@@ -317,11 +279,56 @@ impl Emulator {
 
         end!()
     }
+
+    fn reg_fetch(&self, reg: u8) -> u8 {
+        match reg {
+            // r0 to r11
+            _ if reg <= 11 => self.registers.tier1[reg as usize],
+            12 => {
+                // read input
+                // should be handled outer-level
+                0 /* TODO */
+            }
+            // always one
+            13 => 1,
+            // always zero
+            14 => 0,
+            // function stack start
+            15 => self.registers.tier1[reg as usize],
+            // do not handle
+            _ => 0,
+        }
+    }
+
+    fn reg_write(&mut self, reg: u8, n: u8) {
+        match reg {
+            _ if reg <= 11 || reg == 15 => {
+                self.registers.tier1[reg as usize] = n;
+            }
+            12 => {
+                // output
+                self.output = Some(n.into());
+            }
+            // writing to always x registers takes no effect
+            13 => {}
+            14 => {}
+            // do not handle
+            _ => {}
+        }
+    }
 }
 
 #[repr(transparent)]
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct Output(u8);
+
+impl Deref for Output {
+    type Target = u8;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 impl From<u8> for Output {
     fn from(value: u8) -> Self {
