@@ -92,7 +92,7 @@ fn main() -> anyhow::Result<()> {
 
             if args.run {
                 let output = Emulator::new(target.binary.merge())?.run_to_halt()?;
-                println!("{:?}", output);
+                print_output(&output);
             }
         }
         Some("bin") => {
@@ -100,11 +100,17 @@ fn main() -> anyhow::Result<()> {
             let mut bin = Vec::new();
             input_file.read_to_end(&mut bin)?;
             let output = Emulator::new(bin)?.run_to_halt()?;
-            println!("{:?}", output);
+            print_output(&output);
         }
         _ => yeet!(anyhow!(
             "Cannot determine input file type from the name extension"
         )),
     };
     Ok(())
+}
+
+fn print_output(output: &[u8]) {
+    for &x in output {
+        stdout().write_all(&[x]).unwrap();
+    }
 }

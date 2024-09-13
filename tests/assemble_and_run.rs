@@ -23,6 +23,10 @@ fn emulator_run(bin: impl Into<Vec<u8>>) -> (Emulator, Vec<u8>) {
     (emulator, output)
 }
 
+fn assemble_binary(code: &str) -> Vec<u8> {
+    Assembler::new(code).unwrap().assemble().binary.merge()
+}
+
 fn assemble_and_run(code: &str) -> (Emulator, Vec<u8>) {
     let target = Assembler::new(code).unwrap().assemble();
     println!("{}", target.commented_binary);
@@ -73,4 +77,16 @@ fn multibyte_integer_add() {
 fn function_stack() {
     let ram = assemble_and_run(test_asm!("function_stack")).0.ram;
     assert_eq!(&ram[0..5], &[6, 7, 8, 9, 10]);
+}
+
+#[test]
+fn input_output() {
+    let input = vec![0, 1, 2];
+    let binary = assemble_binary(test_asm!("input_output"));
+    let output = Emulator::new(binary)
+        .unwrap()
+        .set_input(input)
+        .run_to_halt()
+        .unwrap();
+    assert_eq!(&output, &[1, 2, 3]);
 }

@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use crate::assembler::INST_LENGTH;
 use crate::components;
 use crate::components::jump_condition;
@@ -20,6 +21,7 @@ pub struct Emulator {
     pub registers: Registers,
     pub halted: bool,
     pub output: Option<Output>,
+    pub input: RefCell<Vec<u8>>,
 }
 
 #[derive(Debug)]
@@ -69,9 +71,18 @@ impl Emulator {
             registers: Registers::default(),
             halted: false,
             output: None,
+            input: vec![].into(),
         };
         emulator.parse_header()?;
         Ok(emulator)
+    }
+    
+    pub fn set_input(&mut self, input: impl Into<Vec<u8>>) -> &mut Self {
+        // because of taking input uses `pop`, the order is reversed
+        let mut vec = input.into();
+        vec.reverse();
+        self.input = vec.into();
+        self
     }
 
     fn parse_header(&mut self) -> anyhow::Result<()> {
@@ -295,8 +306,7 @@ impl Emulator {
             _ if reg <= 11 => self.registers.tier1[reg as usize],
             12 => {
                 // read input
-                // should be handled outer-level
-                0 /* TODO */
+                self.input.borrow_mut().pop().unwrap_or(0)
             }
             // always one
             13 => 1,
