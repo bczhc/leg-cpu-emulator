@@ -1,19 +1,19 @@
 #![feature(yeet_expr)]
 
-use anyhow::anyhow;
 use clap::Parser;
 use leg_cpu_emulator::assembler::Assembler;
 use leg_cpu_emulator::emulator::Emulator;
 use std::fs::File;
-use std::io::{stdout, Read, Write};
+use std::io;
+use std::io::{stdin, stdout, Read, Write};
 use std::path::PathBuf;
 use yeet_ops::yeet;
 
 #[derive(clap::Parser)]
 struct Args {
-    /// Path to the input file.
+    /// Path to the source file.
     ///
-    /// The input file is of the two filename extensions: .asm/.bin
+    /// The source file is of the two filename extensions: .asm/.bin
     source: PathBuf,
     /// Path to the output file.
     ///
@@ -28,6 +28,12 @@ struct Args {
     /// Output to stdout
     #[arg(long)]
     stdout: bool,
+    /// Path to the program input.
+    #[arg(short, long)]
+    input: Option<PathBuf>,
+    /// Read program input from stdin.
+    #[arg(long)]
+    stdin: bool,
 }
 
 #[derive(clap::ValueEnum, Clone, Debug, Copy)]
@@ -46,7 +52,18 @@ impl Default for OutputType {
 
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
-    let mut input_file = File::open(&args.source)?;
+    let mut source_file = File::open(&args.source)?;
+
+    let program_in = if args.stdin {
+        read_to_vec(stdin())?
+    } else {
+        match args.input {
+            None => {
+                vec![]
+            }
+            Some(path) => read_to_vec(File::open(path)?)?,
+        }
+    };
 
     match args
         .source
@@ -57,7 +74,7 @@ fn main() -> anyhow::Result<()> {
     {
         Some("asm") => {
             let mut code = String::new();
-            input_file.read_to_string(&mut code)?;
+            source_file.read_to_string(&mut code)?;
             let out_file = match args.output {
                 Some(x) => x,
                 None => match args.out_type.unwrap_or_default() {
@@ -91,18 +108,20 @@ fn main() -> anyhow::Result<()> {
             }
 
             if args.run {
-                let output = Emulator::new(target.binary.merge())?.run_to_halt()?;
+                let output = Emulator::new(target.binary.merge())?
+                    .set_input(program_in)
+                    .run_to_halt()?;
                 print_output(&output);
             }
         }
         Some("bin") => {
             // execute the program
             let mut bin = Vec::new();
-            input_file.read_to_end(&mut bin)?;
-            let output = Emulator::new(bin)?.run_to_halt()?;
+            source_file.read_to_end(&mut bin)?;
+            let output = Emulator::new(bin)?.set_input(program_in).run_to_halt()?;
             print_output(&output);
         }
-        _ => yeet!(anyhow!(
+        _ => yeet!(anyhow::anyhow!(
             "Cannot determine input file type from the name extension"
         )),
     };
@@ -113,4 +132,10 @@ fn print_output(output: &[u8]) {
     for &x in output {
         stdout().write_all(&[x]).unwrap();
     }
+}
+
+fn read_to_vec(mut reader: impl Read) -> io::Result<Vec<u8>> {
+    let mut buf = Vec::new();
+    reader.read_to_end(&mut buf)?;
+    Ok(buf)
 }
