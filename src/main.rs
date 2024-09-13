@@ -1,13 +1,13 @@
 #![feature(yeet_expr)]
 
+use anyhow::anyhow;
 use clap::Parser;
 use leg_cpu_emulator::assembler::Assembler;
+use leg_cpu_emulator::emulator::Emulator;
 use std::fs::File;
 use std::io::{stdout, Read, Write};
 use std::path::PathBuf;
-use anyhow::anyhow;
 use yeet_ops::yeet;
-use leg_cpu_emulator::emulator::Emulator;
 
 #[derive(clap::Parser)]
 struct Args {
@@ -47,35 +47,39 @@ impl Default for OutputType {
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
     let mut input_file = File::open(&args.input)?;
-    
-    match args.input.extension().and_then(|x| x.to_str()).map(|x| x.to_lowercase()).as_deref() {
+
+    match args
+        .input
+        .extension()
+        .and_then(|x| x.to_str())
+        .map(|x| x.to_lowercase())
+        .as_deref()
+    {
         Some("asm") => {
             let mut code = String::new();
             input_file.read_to_string(&mut code)?;
             let out_file = match args.output {
                 Some(x) => x,
-                None => {
-                    match args.out_type.unwrap_or_default() {
-                        OutputType::CommentedHex => {
-                            let mut path = args.input.clone();
-                            path.set_extension("txt");
-                            path
-                        }
-                        OutputType::Binary => {
-                            let mut path = args.input.clone();
-                            path.set_extension("bin");
-                            path
-                        }
+                None => match args.out_type.unwrap_or_default() {
+                    OutputType::CommentedHex => {
+                        let mut path = args.input.clone();
+                        path.set_extension("txt");
+                        path
                     }
-                }
+                    OutputType::Binary => {
+                        let mut path = args.input.clone();
+                        path.set_extension("bin");
+                        path
+                    }
+                },
             };
-            
+
             let out: &mut dyn Write = if args.stdout {
                 &mut stdout()
             } else {
                 &mut File::create(&out_file)?
             };
-            
+
             let target = Assembler::new(code)?.assemble();
             match args.out_type.unwrap_or_default() {
                 OutputType::CommentedHex => {
@@ -85,7 +89,7 @@ fn main() -> anyhow::Result<()> {
                     out.write_all(&target.binary.merge())?;
                 }
             }
-            
+
             if args.run {
                 let output = Emulator::new(target.binary.merge())?.run_to_halt()?;
                 println!("{:?}", output);
@@ -98,7 +102,9 @@ fn main() -> anyhow::Result<()> {
             let output = Emulator::new(bin)?.run_to_halt()?;
             println!("{:?}", output);
         }
-        _ => yeet!(anyhow!("Cannot determine input file type from the name extension"))
+        _ => yeet!(anyhow!(
+            "Cannot determine input file type from the name extension"
+        )),
     };
     Ok(())
 }
