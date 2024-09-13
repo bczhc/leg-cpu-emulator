@@ -19,3 +19,6 @@ hex = "0.4.3"
 num-traits = "0.2.19"
 num_enum = "0.7.3"
 clap = { version = "4.5.17", features = ["derive"] }
+# no logging demands for now. disable this
+#fern = "0.6.2"
+log = "0.4.22"
