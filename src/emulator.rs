@@ -96,12 +96,6 @@ impl Emulator {
         if self.halted {
             yeet!(anyhow!("CPU is halted"));
         }
-        
-        // every tick, reset the output.
-        // output is only valid if enabled in Turing Complete
-        self.output = None;
-        
-        let inst = &self.program[self.pc.usize()..(self.pc.usize() + INST_LENGTH as usize)];
 
         macro end_not_add_pc() {{
             return Ok(());
@@ -112,10 +106,26 @@ impl Emulator {
             return end_not_add_pc!();
         }}
 
+        // every tick, reset the output.
+        // output is only valid if enabled in Turing Complete
+        self.output = None;
+        
+        let inst = if self.pc.usize() + INST_LENGTH as usize - 1 > self.program.len() {
+            // PC goes beyond the available program area
+            // this may happen if jumping to an invalid program address,
+            // or program runs without a `halt`.
+            // just issue [0, 0, 0, 0] if this happens.
+            &NULL_INSTRUCTION
+        } else {
+            &self.program[self.pc.usize()..(self.pc.usize() + INST_LENGTH as usize)]
+        };
+
         let opcode_u8 = inst[0] & 0b00111111;
         let Ok(opcode) = Opcode::try_from(opcode_u8) else {
-            yeet!(anyhow!("Unknown opcode: 0x{:02x?}", inst[0]))
+            // skip unknown opcodes
+            end!()
         };
+        dbg!(&opcode);
 
         // immediate number masks
         let imm1 = inst[0] & 0b10000000 == 0b10000000;
@@ -230,11 +240,11 @@ impl Emulator {
                     }
                     0b010 => {
                         // carry-add
-                        let value = operand1
-                            .wrapping_add(operand2)
-                            .wrapping_add(self.registers.carry_u8());
-                        self.reg_write(inst[3], value);
+                        let (r1, c1) = operand1.carrying_add(operand2, false);
+                        let (r2, c2) = r1.carrying_add(self.registers.carry_u8(), false);
+                        self.reg_write(inst[3], r2);
                         // also set the carry bit
+                        self.registers.carry = c1 || c2;
                     }
                     0b011 => {
                         // add-no-carry
@@ -388,6 +398,8 @@ where
         self.0.as_()
     }
 }
+
+pub static NULL_INSTRUCTION: [u8; 4] = [0, 0, 0, 0];
 
 #[cfg(test)]
 mod test {

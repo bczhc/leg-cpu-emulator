@@ -11,6 +11,7 @@ fn emulator_run(bin: impl Into<Vec<u8>>) -> (Emulator, Vec<u8>) {
     let mut emulator = Emulator::new(bin).unwrap();
     let mut output = Vec::new();
     loop {
+        // println!("PC: {}", emulator.pc.usize());
         emulator.tick().unwrap();
         if emulator.halted {
             break;
@@ -20,6 +21,12 @@ fn emulator_run(bin: impl Into<Vec<u8>>) -> (Emulator, Vec<u8>) {
         }
     }
     (emulator, output)
+}
+
+fn assemble_and_run(code: &str) -> (Emulator, Vec<u8>) {
+    let target = Assembler::new(code).unwrap().assemble();
+    println!("{}", target.commented_binary);
+    emulator_run(target.binary.merge())
 }
 
 #[test]
@@ -43,35 +50,25 @@ fn asm_fibonacci() {
 
 #[test]
 fn asm_selection_sort() {
-    let code = test_asm!("selection_sort");
-    let assembler = Assembler::new(code).unwrap();
-    let target = assembler.assemble();
-    println!("{}", target.commented_binary);
+    let ram = assemble_and_run(test_asm!("selection_sort")).0.ram;
+    assert_eq!(&ram[..16], &(0..16).collect::<Vec<u8>>())
 }
 
 #[test]
 fn sixteen_bits_addressing() {
-    let code = test_asm!("16bit_addressing");
-    let assembler = Assembler::new(code).unwrap();
-    println!("{}", assembler.assemble().commented_binary);
-}
-
-fn assemble_to_commented_binary(code: &str) -> String {
-    Assembler::new(code).unwrap().assemble().commented_binary
+    let output = assemble_and_run(test_asm!("16bit_addressing")).1[0];
+    assert_eq!(output, 5 /* 2 + 3 */);
 }
 
 #[test]
 fn multibyte_integer_add() {
-    println!(
-        "{}",
-        assemble_to_commented_binary(test_asm!("multibyte-integer-adding"))
-    );
+    let target = Assembler::new(test_asm!("multibyte-integer-adding")).unwrap().assemble();
+    let status = emulator_run(target.binary.merge()).1[0];
+    assert_eq!(status, 0);
 }
 
 #[test]
 fn function_stack() {
-    println!(
-        "{}",
-        assemble_to_commented_binary(test_asm!("function_stack"))
-    );
+    let ram = assemble_and_run(test_asm!("function_stack")).0.ram;
+    assert_eq!(&ram[0..5], &[6, 7, 8, 9, 10]);
 }

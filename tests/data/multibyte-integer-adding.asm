@@ -180,7 +180,9 @@ start:
     jplt r0 8
 
     ok:
+    cp 0 out
     halt
 
     error:
+    cp 1 out
     halt

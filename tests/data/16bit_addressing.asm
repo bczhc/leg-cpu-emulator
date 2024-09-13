@@ -103,3 +103,4 @@ start:
     call f_add ; also the address of f_add is out of 8-bit range
     fpop r0
     cp r0 out
+    halt
