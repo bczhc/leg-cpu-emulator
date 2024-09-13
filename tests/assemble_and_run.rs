@@ -4,7 +4,7 @@ use leg_cpu_emulator::assembler::Assembler;
 use leg_cpu_emulator::emulator::Emulator;
 
 macro test_asm($name:literal) {
-    include_str!(concat!("../tests/data/", $name, ".asm"))
+    include_str!(concat!("../tests/asm/", $name, ".asm"))
 }
 
 fn emulator_run(bin: impl Into<Vec<u8>>) -> (Emulator, Vec<u8>) {

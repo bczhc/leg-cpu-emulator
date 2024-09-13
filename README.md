@@ -3,6 +3,18 @@ LEG-CPU-emulator
 
 Emulator and assembler for my "LEG" Architecture CPU in the game "Turing Complete".
 
+## Build
+
+```shell
+cargo build -r
+```
+
+## Run All Tests
+
+```shell
+cargo test
+```
+
 ## CLI Usage:
 <pre><u style="text-decoration-style:solid"><b>Usage:</b></u> <b>leg</b> [OPTIONS] &lt;INPUT&gt;
 
