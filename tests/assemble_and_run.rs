@@ -94,22 +94,21 @@ fn input_output() {
 #[test]
 fn water_world() {
     let data = [
-        ([4_u8, 6, 1, 4, 6, 5, 1, 4, 1, 2, 6, 5, 6, 1, 4, 2], 28_u8),
-        ([2, 5, 1, 5, 1, 2, 1, 5, 1, 2, 2, 4, 5, 5, 4, 1], 26),
-        ([6, 1, 1, 1, 2, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 6], 67),
-        ([4, 4, 5, 6, 1, 1, 3, 1, 2, 1, 1, 1, 1, 1, 1, 1], 5),
-        ([1, 2, 3, 4, 5, 6, 6, 6, 6, 6, 6, 5, 4, 3, 2, 1], 0),
-        ([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 6, 2, 2, 1], 0),
-        ([5, 6, 2, 5, 1, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1], 5),
+        ("4,6,1,4,6,5,1,4,1,2,6,5,6,1,4,2", 28_u8),
+        ("2,5,1,5,1,2,1,5,1,2,2,4,5,5,4,1", 26),
+        ("6,1,1,1,2,1,1,1,1,1,3,1,1,1,1,6", 67),
+        ("4,4,5,6,1,1,3,1,2,1,1,1,1,1,1,1", 5),
+        ("1,2,3,4,5,6,6,6,6,6,6,5,4,3,2,1", 0),
+        ("1,1,1,1,1,1,1,1,1,1,1,3,6,2,2,1", 0),
+        ("5,6,2,5,1,3,2,1,1,1,1,1,1,1,1,1", 5),
     ];
 
     let target = Assembler::new(test_asm!("water_world")).unwrap().assemble();
-    for d in data {
-        println!("{:?}", d);
+    for (line, expected) in data {
         let mut emulator = Emulator::new(target.binary.merge()).unwrap();
-        emulator.set_input(d.0);
+        emulator.set_input(format!("{line}\n").as_bytes());
         let output = emulator.run_to_halt().unwrap();
-        let answer = output[0];
-        assert_eq!(answer, output[0]);
+        let output = String::from_utf8(output).unwrap();
+        assert_eq!(output.trim().parse::<u8>().unwrap(), expected);
     }
 }
