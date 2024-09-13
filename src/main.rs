@@ -14,7 +14,7 @@ struct Args {
     /// Path to the input file.
     ///
     /// The input file is of the two filename extensions: .asm/.bin
-    input: PathBuf,
+    source: PathBuf,
     /// Path to the output file.
     ///
     /// If no output file is specified, derive from the input file.
@@ -46,10 +46,10 @@ impl Default for OutputType {
 
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
-    let mut input_file = File::open(&args.input)?;
+    let mut input_file = File::open(&args.source)?;
 
     match args
-        .input
+        .source
         .extension()
         .and_then(|x| x.to_str())
         .map(|x| x.to_lowercase())
@@ -62,12 +62,12 @@ fn main() -> anyhow::Result<()> {
                 Some(x) => x,
                 None => match args.out_type.unwrap_or_default() {
                     OutputType::CommentedHex => {
-                        let mut path = args.input.clone();
+                        let mut path = args.source.clone();
                         path.set_extension("txt");
                         path
                     }
                     OutputType::Binary => {
-                        let mut path = args.input.clone();
+                        let mut path = args.source.clone();
                         path.set_extension("bin");
                         path
                     }
