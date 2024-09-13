@@ -91,27 +91,28 @@ fn main() -> anyhow::Result<()> {
                 },
             };
 
-            let out: &mut dyn Write = if args.stdout {
-                &mut stdout()
-            } else {
-                &mut File::create(&out_file)?
-            };
-
             let target = Assembler::new(code)?.assemble();
-            match args.out_type.unwrap_or_default() {
-                OutputType::CommentedHex => {
-                    out.write_all(target.commented_binary.as_bytes())?;
-                }
-                OutputType::Binary => {
-                    out.write_all(&target.binary.merge())?;
-                }
-            }
 
             if args.run {
+                // transparent-run mode. do not write to file
                 let output = Emulator::new(target.binary.merge())?
                     .set_input(program_in)
                     .run_to_halt()?;
                 print_output(&output);
+            } else {
+                let out: &mut dyn Write = if args.stdout {
+                    &mut stdout()
+                } else {
+                    &mut File::create(&out_file)?
+                };
+                match args.out_type.unwrap_or_default() {
+                    OutputType::CommentedHex => {
+                        out.write_all(target.commented_binary.as_bytes())?;
+                    }
+                    OutputType::Binary => {
+                        out.write_all(&target.binary.merge())?;
+                    }
+                }
             }
         }
         Some("bin") => {
