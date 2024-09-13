@@ -12,17 +12,19 @@ use yeet_ops::yeet;
 
 #[derive(Default, Debug)]
 pub struct Emulator {
-    program: Vec<u8>,
-    pc: WrappingNum<u16>,
-    ram: Vec<u8>,
-    stack: Vec<u8>,
-    f_call_stack: Vec<u16>,
-    f_args_stack: Vec<u8>,
-    registers: Registers,
+    pub program: Vec<u8>,
+    pub pc: WrappingNum<u16>,
+    pub ram: Vec<u8>,
+    pub stack: Vec<u8>,
+    pub f_call_stack: Vec<u16>,
+    pub f_args_stack: Vec<u8>,
+    pub registers: Registers,
+    pub halted: bool,
+    pub output: Option<Output>,
 }
 
 #[derive(Debug)]
-struct Registers {
+pub struct Registers {
     /// The 16 registers, represented as a 4-bit number in the operand byte.
     ///
     /// Tier1 registers can be set via `cp`, `st`, `ld`, `add` etc.
@@ -56,8 +58,9 @@ impl Registers {
         match reg {
             // r0 to r11
             _ if reg <= 11 => self.tier1[reg as usize],
-            // in/out
             12 => {
+                // read input
+                // should be handled outer-level
                 0 /* TODO */
             }
             // always one
@@ -76,7 +79,10 @@ impl Registers {
             _ if reg <= 11 || reg == 15 => {
                 self.tier1[reg as usize] = n;
             }
-            12 => { /* TODO */ }
+            12 => {
+                // output
+                println!("Output: {}", n);
+            }
             // writing to always x registers takes no effect
             13 => {}
             14 => {}
@@ -91,15 +97,17 @@ impl Registers {
 }
 
 impl Emulator {
-    pub fn new(binary: Vec<u8>) -> anyhow::Result<Self> {
+    pub fn new(binary: impl Into<Vec<u8>>) -> anyhow::Result<Self> {
         let mut emulator = Self {
-            program: binary,
+            program: binary.into(),
             pc: 0.into(),
             ram: vec![0; u8::MAX as usize],
             stack: vec![0; u8::MAX as usize],
             f_call_stack: vec![0; u8::MAX as usize],
             f_args_stack: vec![0; u8::MAX as usize],
             registers: Registers::default(),
+            halted: false,
+            output: None,
         };
         emulator.parse_header()?;
         Ok(emulator)
@@ -112,8 +120,8 @@ impl Emulator {
         }
 
         let data_len = header[1] as usize;
-        let mem_start = header[0] as usize;
-        let entrypoint: u16 = header[2] as u16;
+        let mem_start = header[2] as usize;
+        let entrypoint: u16 = header[3] as u16;
 
         let static_data = &self.program[4..(4 + data_len)];
         self.ram[mem_start..(mem_start + data_len)].copy_from_slice(static_data);
@@ -122,11 +130,19 @@ impl Emulator {
         Ok(())
     }
 
-    pub fn tick(&mut self) -> anyhow::Result<Option<Output>> {
+    pub fn tick(&mut self) -> anyhow::Result<()> {
+        if self.halted {
+            yeet!(anyhow!("CPU is halted"));
+        }
+        
+        // every tick, reset the output.
+        // output is only valid if enabled in Turing Complete
+        self.output = None;
+        
         let inst = &self.program[self.pc.usize()..(self.pc.usize() + INST_LENGTH as usize)];
 
         macro end_not_add_pc() {{
-            return Ok(None); /* TODO */
+            return Ok(());
         }}
 
         macro end() {{
@@ -134,7 +150,7 @@ impl Emulator {
             return end_not_add_pc!();
         }}
 
-        let opcode_u8 = inst[0];
+        let opcode_u8 = inst[0] & 0b00111111;
         let Ok(opcode) = Opcode::try_from(opcode_u8) else {
             yeet!(anyhow!("Unknown opcode: 0x{:02x?}", inst[0]))
         };
@@ -144,7 +160,7 @@ impl Emulator {
         let imm2 = inst[0] & 0b01000000 == 0b01000000;
 
         // just skip unknown instructions
-        let Ok(opcode_type) = OpcodeType::try_from(opcode_u8 & OPCODE_TYPE_MASK) else {
+        let Ok(opcode_type) = OpcodeType::try_from((opcode_u8 & OPCODE_TYPE_MASK) >> 3) else {
             end!()
         };
 
@@ -280,11 +296,7 @@ impl Emulator {
                 match opcode_subtype {
                     0b010 => {
                         // halt
-                        // TODO: maybe a more elegant handling method
-                        println!("Halt!");
-                        loop {
-                            hint::spin_loop()
-                        }
+                        self.halted = true;
                     }
                     0b011 => {
                         // copy
@@ -308,6 +320,7 @@ impl Emulator {
 }
 
 #[repr(transparent)]
+#[derive(Debug)]
 pub struct Output(u8);
 
 impl From<u8> for Output {
@@ -318,7 +331,7 @@ impl From<u8> for Output {
 
 #[derive(Debug)]
 #[repr(transparent)]
-struct WrappingNum<T>(T)
+pub struct WrappingNum<T>(T)
 where
     T: WrappingAdd;
 

@@ -56,10 +56,6 @@ enum AluOpcode {
 }
 
 pub fn jump_condition(opcode: u8, n1: u8, n2: u8) -> bool {
-    if opcode & OPCODE_TYPE_MASK != OpcodeType::ConditionalJumping as u8 {
-        return false;
-    }
-
     let cond_opcode = opcode & OPCODE_SUBTYPE_MASK;
     let not_bit = cond_opcode & 0b100 == 0b100;
 
