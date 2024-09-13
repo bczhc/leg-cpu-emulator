@@ -16,13 +16,13 @@ cargo test
 ```
 
 ## CLI Usage:
-<pre><u style="text-decoration-style:solid"><b>Usage:</b></u> <b>leg</b> [OPTIONS] &lt;INPUT&gt;
+<pre><u style="text-decoration-style:solid"><b>Usage:</b></u> <b>leg</b> [OPTIONS] &lt;SOURCE&gt;
 
 <u style="text-decoration-style:solid"><b>Arguments:</b></u>
-  &lt;INPUT&gt;
-          Path to the input file.
+  &lt;SOURCE&gt;
+          Path to the source file.
           
-          The input file is of the two filename extensions: .asm/.bin
+          The source file is of the two filename extensions: .asm/.bin
 
 <u style="text-decoration-style:solid"><b>Options:</b></u>
   <b>-o</b>, <b>--output</b> &lt;OUTPUT&gt;
@@ -39,9 +39,14 @@ cargo test
       <b>--stdout</b>
           Output to stdout
 
+  <b>-i</b>, <b>--input</b> &lt;INPUT&gt;
+          Path to the program input
+
+      <b>--stdin</b>
+          Read program input from stdin
+
   <b>-h</b>, <b>--help</b>
-          Print help (see a summary with &apos;-h&apos;)
-</pre>
+          Print help (see a summary with &apos;-h&apos;)</pre>
 
 ## Example
 
