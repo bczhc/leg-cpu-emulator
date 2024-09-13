@@ -6,9 +6,9 @@
 #![feature(bigint_helper_methods)]
 
 pub mod assembler;
-pub mod instruction;
-pub mod emulator;
 pub mod components;
+pub mod emulator;
+pub mod instruction;
 
 pub const DIGITS: [char; 10] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
@@ -19,8 +19,11 @@ where
     fn push_all(&mut self, items: impl Iterator<Item = T>);
 }
 
-impl<T> VecExt<T> for Vec<T> where T: Copy + Sized {
-    fn push_all(&mut self, items: impl Iterator<Item=T>) {
+impl<T> VecExt<T> for Vec<T>
+where
+    T: Copy + Sized,
+{
+    fn push_all(&mut self, items: impl Iterator<Item = T>) {
         for x in items {
             self.push(x);
         }

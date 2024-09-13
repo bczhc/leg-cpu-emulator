@@ -102,13 +102,13 @@ impl Emulator {
 
         macro end() {{
             self.pc += INST_LENGTH as u16;
-            return end_not_add_pc!();
+            end_not_add_pc!();
         }}
 
         // every tick, reset the output.
         // output is only valid if enabled in Turing Complete
         self.output = None;
-        
+
         let inst = if self.pc.usize() + INST_LENGTH as usize - 1 > self.program.len() {
             // PC goes beyond the available program area
             // this may happen if jumping to an invalid program address,
@@ -325,7 +325,7 @@ impl Emulator {
             _ => {}
         }
     }
-    
+
     pub fn run_to_halt(&mut self) -> anyhow::Result<Vec<u8>> {
         let mut output = Vec::new();
         loop {

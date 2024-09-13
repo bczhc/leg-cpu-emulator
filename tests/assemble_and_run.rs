@@ -62,7 +62,9 @@ fn sixteen_bits_addressing() {
 
 #[test]
 fn multibyte_integer_add() {
-    let target = Assembler::new(test_asm!("multibyte-integer-adding")).unwrap().assemble();
+    let target = Assembler::new(test_asm!("multibyte-integer-adding"))
+        .unwrap()
+        .assemble();
     let status = emulator_run(target.binary.merge()).1[0];
     assert_eq!(status, 0);
 }

@@ -1,4 +1,4 @@
-use crate::instruction::{OpcodeType, OPCODE_SUBTYPE_MASK, OPCODE_TYPE_MASK};
+use crate::instruction::OPCODE_SUBTYPE_MASK;
 use num_enum::TryFromPrimitive;
 
 fn neg(n: u8) -> u8 {

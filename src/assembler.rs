@@ -13,8 +13,6 @@ pub const INST_LENGTH: u8 = 4;
 
 #[derive(Debug)]
 pub struct Assembler {
-    code: String,
-    lines: Vec<String>,
     consts: HashMap<String, u8>,
     labels: HashMap<String, u16>,
     sections: Sections,
@@ -155,8 +153,6 @@ impl Assembler {
         }
 
         Ok(Self {
-            code: code.into(),
-            lines: code.lines().map(Into::into).collect(),
             consts,
             labels,
             sections,
@@ -231,7 +227,7 @@ impl Assembler {
         let mut inst = [0_u8; 4];
 
         let split = line.split(' ').collect::<Vec<_>>();
-        let &opcode_str = split.get(0).ok_or(anyhow!("Missing opcode"))?;
+        let &opcode_str = split.first().ok_or(anyhow!("Missing opcode"))?;
         let opcode =
             Opcode::from_str(opcode_str).map_err(|_| anyhow!("Unknown opcode: {}", opcode_str))?;
         inst[0] = opcode as u8;

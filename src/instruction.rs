@@ -1,6 +1,6 @@
 use crate::parse_u8_literal;
 use anyhow::anyhow;
-use num_enum::{FromPrimitive, TryFromPrimitive};
+use num_enum::TryFromPrimitive;
 use std::str::FromStr;
 use strum_macros::EnumString;
 
@@ -246,8 +246,8 @@ impl Opcode {
         // opcode
         inst[0] = *self as u8;
         // operands #1, #2, #3
-        for i in 1..=3 {
-            inst[i] = inst_operand(i)?.map(|x| x.to_u8()).unwrap_or(0);
+        for (i, x) in inst.iter_mut().enumerate().skip(1) {
+            *x = inst_operand(i)?.map(|x| x.to_u8()).unwrap_or(0);
         }
 
         // add immediate masks
