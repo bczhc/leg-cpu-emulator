@@ -5,13 +5,13 @@ text 'hello, world' text_len
 
 .code
 start:
-    cp 0 r0 ; i = 0
-    for_L1:
+    cp 0 r0 ; r0 <- 0
+    for1:
     add r0 text r1
     ld r1 r1 ; r1 <- text[i]
-    cp r1 out
-    add r0 1 r0 ; ++i
-    jamv for_L1 ; move address of label 'for_L1' to the jump register
+    cp r1 out ; print character out
+    add r0 1 r0 ; increase r0
+    jamv for_L1 ; move address of label 'for1' to the jump-address register
     jplt r0 text_len ; do the jump if r0 < text_len
-    cp 0x0a out ; the new-line
+    cp 0x0a out ; print the new-line
     halt

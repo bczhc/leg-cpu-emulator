@@ -76,7 +76,7 @@ impl Emulator {
         emulator.parse_header()?;
         Ok(emulator)
     }
-    
+
     pub fn set_input(&mut self, input: impl Into<Vec<u8>>) -> &mut Self {
         // because of taking input uses `pop`, the order is reversed
         let mut vec = input.into();
@@ -131,11 +131,10 @@ impl Emulator {
         };
 
         let opcode_u8 = inst[0] & 0b00111111;
-        let Ok(opcode) = Opcode::try_from(opcode_u8) else {
+        let Ok(_opcode) = Opcode::try_from(opcode_u8) else {
             // skip unknown opcodes
             end!()
         };
-        dbg!(&opcode);
 
         // immediate number masks
         let imm1 = inst[0] & 0b10000000 == 0b10000000;
