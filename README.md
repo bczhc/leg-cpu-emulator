@@ -108,3 +108,22 @@ For the code that can be used in Turing Complete, use:
 ```
 
 More examples are under [tests](https://github.com/bczhc/leg-cpu-emulator/tree/master/tests).
+
+## WebUI
+
+### Dev-Run
+
+```bash
+cd web-ui
+wasm-pack build
+cd web && npm run dev
+```
+
+### Build
+
+```bash
+cd web-ui
+wasm-pack build
+cd web && npm run build
+wasm
+```
