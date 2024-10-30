@@ -11,4 +11,5 @@ export default defineConfig({
     build: {
         target: 'esnext',
     },
+    base: 'leg-cpu-emulator'
 })
