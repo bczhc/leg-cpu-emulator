@@ -125,5 +125,5 @@ cd web && npm run dev
 cd web-ui
 wasm-pack build
 cd web && npm run build
-wasm
+# now files to serve are under dist/
 ```
