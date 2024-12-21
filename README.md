@@ -3,6 +3,11 @@ LEG-CPU-emulator
 
 Emulator and assembler for my "LEG" Architecture CPU in the game "Turing Complete".
 
+![Screenshot_2024-12-21_11-53-03](https://github.com/user-attachments/assets/f9f85213-9d49-4efa-9308-dc87641e8c04)
+
+(Don't judge this screenshot.. :P. It's really a bad circuit design.)
+
+
 ## Build
 
 ```shell
