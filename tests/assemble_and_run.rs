@@ -2,6 +2,7 @@
 
 use leg_cpu_emulator::assembler::Assembler;
 use leg_cpu_emulator::emulator::Emulator;
+use std::io::BufRead;
 
 macro test_asm($name:literal) {
     include_str!(concat!("../tests/asm/", $name, ".asm"))
@@ -111,4 +112,26 @@ fn water_world() {
         let output = String::from_utf8(output).unwrap();
         assert_eq!(output.trim().parse::<u8>().unwrap(), expected);
     }
+}
+
+#[test]
+fn prime_numbers() {
+    fn is_prime(n: u16) -> bool {
+        for i in 2..n {
+            if n % i == 0 {
+                return false;
+            }
+        }
+        true
+    }
+    let expected = (2..=500).filter(|&x| is_prime(x)).collect::<Vec<_>>();
+
+    let mut list = Vec::new();
+    let (_emulator, output) = assemble_and_run(test_asm!("prime_numbers"));
+    let output = String::from_utf8(output).unwrap();
+    let output = output.trim();
+    for line in output.lines() {
+        list.push(line.parse::<u16>().unwrap());
+    }
+    assert_eq!(expected, list);
 }
