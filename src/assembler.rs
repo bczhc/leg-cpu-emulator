@@ -56,12 +56,16 @@ impl Assembler {
 
         if let Some(s) = sections.find("consts") {
             for x in &s.body_lines {
+                let x = Self::remove_comment(x);
+                if x.is_empty() {
+                    continue;
+                }
                 let mut split = x.split(' ');
-                let name = split.next().ok_or(anyhow!(".consts: syntax error"))?;
-                let value = split.next().ok_or(anyhow!(".consts: syntax error"))?;
+                let name = split.next().ok_or(anyhow!(".consts: syntax error: {x}"))?;
+                let value = split.next().ok_or(anyhow!(".consts: syntax error: {x}"))?;
                 consts.insert(
                     name.into(),
-                    parse_u8_literal(value).ok_or(anyhow!("Invalid u8 literal"))?,
+                    parse_u8_literal(value).ok_or(anyhow!("Invalid u8 literal: {x}"))?,
                 );
             }
         }
@@ -76,7 +80,8 @@ impl Assembler {
             let mut static_data = Vec::new();
 
             let mem_start = s.args.first().ok_or(anyhow!(".data: missing mem_start"))?;
-            let mut mem_start = mem_start.parse::<u8>()?;
+            let mut mem_start =
+                parse_u8_literal(mem_start).ok_or(anyhow!("Invalid mem_start: {mem_start}"))?;
             copy_static_info.1 = mem_start;
             for line in &s.body_lines {
                 let line = Self::remove_comment(line);
@@ -148,7 +153,9 @@ impl Assembler {
                 use fmt::Write;
                 write!(&mut data_string, "{} ", x).unwrap();
             }
-            data_string.remove(data_string.len() - 1);
+            if data_string.len() > 0 {
+                data_string.remove(data_string.len() - 1);
+            }
             binary_header.push_all(x.iter().copied());
         }
 

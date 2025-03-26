@@ -2,17 +2,13 @@
 ;
 ; © 2025 Zhai Can <bczhc0@126.com>, under MIT.
 
-; .consts comments
-; 16-bit numbers
-; MAX: 0x01f4, 500
-
-.data 0
-padding [0x00] _
+.data 0x0000
 ss [] _
 
 .consts
 NEW_LINE 10
-MAX_LE_HI 0x01
+; 16-bit numbers
+MAX_LE_HI 0x01 ; 0x01f4, 500
 MAX_LE_LO 0xf4
 
 .entry main

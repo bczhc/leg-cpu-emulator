@@ -95,10 +95,9 @@ fn main() -> anyhow::Result<()> {
 
             if args.run {
                 // transparent-run mode. do not write to file
-                let output = Emulator::new(target.binary.merge())?
+                Emulator::new(target.binary.merge())?
                     .set_input(program_in)
-                    .run_to_halt()?;
-                print_output(&output);
+                    .run_to_halt_with_print()?;
             } else {
                 let out: &mut dyn Write = if args.stdout {
                     &mut stdout()
@@ -119,20 +118,13 @@ fn main() -> anyhow::Result<()> {
             // execute the program
             let mut bin = Vec::new();
             source_file.read_to_end(&mut bin)?;
-            let output = Emulator::new(bin)?.set_input(program_in).run_to_halt()?;
-            print_output(&output);
+            Emulator::new(bin)?.set_input(program_in).run_to_halt_with_print()?;
         }
         _ => yeet!(anyhow::anyhow!(
             "Cannot determine input file type from the name extension"
         )),
     };
     Ok(())
-}
-
-fn print_output(output: &[u8]) {
-    for &x in output {
-        stdout().write_all(&[x]).unwrap();
-    }
 }
 
 fn read_to_vec(mut reader: impl Read) -> io::Result<Vec<u8>> {

@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::io::{stdout, Write};
 use crate::assembler::INST_LENGTH;
 use crate::components;
 use crate::components::jump_condition;
@@ -348,6 +349,21 @@ impl Emulator {
             }
         }
         Ok(output)
+    }
+
+    pub fn run_to_halt_with_print(&mut self) -> anyhow::Result<()> {
+        let mut stdout = stdout();
+        loop {
+            self.tick()?;
+            if self.halted {
+                break;
+            }
+            if let Some(x) = self.output {
+                stdout.write_all(&[*x])?;
+                stdout.flush()?;
+            }
+        }
+        Ok(())
     }
 }
 

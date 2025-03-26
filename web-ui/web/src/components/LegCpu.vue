@@ -5,7 +5,7 @@ import {LegEmulationResult} from "wasm-lib";
 import exampleHelloWorld from '../assets/leg-cpu-examples/hello-world/code?raw';
 import exampleWaterWorld from '../assets/leg-cpu-examples/water-world/code?raw';
 import exampleWaterWorldInput from '../assets/leg-cpu-examples/water-world/input?raw';
-import exampleFunctionStack from '../assets/leg-cpu-examples/function-stack/code?raw';
+import examplePrimeNumbers from '../assets/leg-cpu-examples/prime-numbers/code?raw';
 
 let wasm = useWasm();
 
@@ -43,12 +43,12 @@ let output_binary_hex = computed(() => {
   return Array.from(r.output).map(x => to_hex_padded(x, 2)).join(' ');
 });
 
-type ExampleKeys = 'hello-world' | 'water-world' | 'function-stack';
+type ExampleKeys = 'hello-world' | 'water-world' | 'prime-numbers';
 
 let examplesOptions: ({ key: ExampleKeys, label: string })[] = [
   {key: 'hello-world', label: 'Hello World'},
   {key: 'water-world', label: 'Water World'},
-  {key: 'function-stack', label: 'Function Stack'},
+  {key: 'prime-numbers', label: 'Prime Numbers'},
 ]
 
 function onExamplesSelected(key: ExampleKeys) {
@@ -61,8 +61,8 @@ function onExamplesSelected(key: ExampleKeys) {
       code.value = (exampleWaterWorld as string).trim();
       programInput.value = (exampleWaterWorldInput as string).trim();
       break;
-    case 'function-stack':
-      code.value = (exampleFunctionStack as string).trim();
+    case 'prime-numbers':
+      code.value = (examplePrimeNumbers as string).trim();
       programInput.value = '';
   }
 }
